@@ -13,7 +13,7 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
-    "incremental": true,
+    "incremental": false,
     "noUncheckedIndexedAccess": false,
     "strictPropertyInitialization": false
   }

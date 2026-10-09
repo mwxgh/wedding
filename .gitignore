@@ -31,4 +31,5 @@ yarn-error.log*
 
 # Misc
 .DS_Store
+*.tsbuildinfo
 *.pem
