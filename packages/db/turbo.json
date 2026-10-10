@@ -1,0 +1,10 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "check-types": {
+      // build runs `prisma generate`; running it twice in parallel races on src/generated
+      "dependsOn": ["build"]
+    }
+  }
+}

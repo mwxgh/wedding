@@ -1,0 +1,203 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Side {
+  BRIDE
+  GROOM
+  BOTH
+}
+
+enum RsvpStatus {
+  PENDING
+  ATTENDING
+  DECLINED
+  MAYBE
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  HIDDEN
+}
+
+enum GiftMethod {
+  CASH
+  BANK_TRANSFER
+  GOLD
+  OTHER
+}
+
+enum Relation {
+  FAMILY
+  RELATIVE
+  FRIEND
+  COLLEAGUE
+  NEIGHBOR
+  OTHER
+}
+
+model WeddingInfo {
+  id            Int      @id @default(1)
+  brideName     String
+  groomName     String
+  brideParents  String?
+  groomParents  String?
+  weddingDate   DateTime
+  story         String?  @db.Text
+  coverPhotoKey String?
+  updatedAt     DateTime @updatedAt
+}
+
+model Event {
+  id          String            @id @default(uuid(7)) @db.Char(36)
+  name        String
+  side        Side
+  startAt     DateTime
+  endAt       DateTime?
+  venueName   String
+  address     String
+  mapUrl      String?           @db.Text
+  sortOrder   Int               @default(0)
+  tables      Table[]
+  invitations InvitationEvent[]
+  gifts       Gift[]
+}
+
+model Invitation {
+  id        String            @id @default(uuid(7)) @db.Char(36)
+  code      String            @unique @db.VarChar(16)
+  name      String
+  side      Side
+  relation  Relation          @default(OTHER)
+  maxGuests Int               @default(1)
+  phone     String?
+  note      String?           @db.Text
+  openedAt  DateTime?
+  createdAt DateTime          @default(now())
+  guests    Guest[]
+  events    InvitationEvent[]
+  guestbook GuestbookEntry[]
+  gifts     Gift[]
+  photos    Photo[]
+
+  @@index([side])
+}
+
+model Guest {
+  id           String     @id @default(uuid(7)) @db.Char(36)
+  invitationId String     @db.Char(36)
+  name         String
+  isChild      Boolean    @default(false)
+  dietaryNote  String?
+  invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@index([invitationId])
+}
+
+model InvitationEvent {
+  invitationId   String     @db.Char(36)
+  eventId        String     @db.Char(36)
+  status         RsvpStatus @default(PENDING)
+  attendingCount Int        @default(0)
+  message        String?    @db.Text
+  respondedAt    DateTime?
+  tableId        String?    @db.Char(36)
+  invitation     Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+  event          Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  table          Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@id([invitationId, eventId])
+  @@index([eventId, status])
+  @@index([tableId])
+}
+
+model Table {
+  id       String            @id @default(uuid(7)) @db.Char(36)
+  eventId  String            @db.Char(36)
+  name     String
+  capacity Int               @default(10)
+  event    Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seats    InvitationEvent[]
+
+  @@unique([eventId, name])
+}
+
+model Album {
+  id        String  @id @default(uuid(7)) @db.Char(36)
+  title     String
+  isGuest   Boolean @default(false)
+  sortOrder Int     @default(0)
+  photos    Photo[]
+}
+
+model Photo {
+  id           String           @id @default(uuid(7)) @db.Char(36)
+  albumId      String?          @db.Char(36)
+  objectKey    String           @unique
+  mimeType     String
+  sizeBytes    Int
+  width        Int?
+  height       Int?
+  caption      String?
+  status       ModerationStatus @default(PENDING)
+  invitationId String?          @db.Char(36)
+  createdAt    DateTime         @default(now())
+  album        Album?           @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  invitation   Invitation?      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+
+  @@index([albumId, status])
+  @@index([invitationId])
+}
+
+model GuestbookEntry {
+  id           String           @id @default(uuid(7)) @db.Char(36)
+  invitationId String?          @db.Char(36)
+  authorName   String
+  message      String           @db.Text
+  status       ModerationStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  invitation   Invitation?      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([invitationId])
+}
+
+model Gift {
+  id           String      @id @default(uuid(7)) @db.Char(36)
+  invitationId String?     @db.Char(36)
+  eventId      String?     @db.Char(36)
+  giverName    String
+  method       GiftMethod
+  amount       BigInt?
+  description  String?
+  receivedAt   DateTime    @default(now())
+  invitation   Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  event        Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([invitationId])
+  @@index([eventId])
+}
+
+model BankAccount {
+  id            String @id @default(uuid(7)) @db.Char(36)
+  side          Side
+  bankBin       String @db.VarChar(8)
+  accountNumber String
+  accountName   String
+  sortOrder     Int    @default(0)
+}
+
+model AdminUser {
+  id           String   @id @default(uuid(7)) @db.Char(36)
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
