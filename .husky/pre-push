@@ -1,0 +1,2 @@
+# Same checks as CI before anything leaves this machine (turbo caches results)
+pnpm exec turbo run lint check-types test --output-logs=errors-only
