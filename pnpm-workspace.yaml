@@ -3,3 +3,7 @@ packages:
   - "packages/*"
 resolvePeersFromWorkspaceRoot: false
 dedupePeerDependents: false
+allowBuilds:
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true

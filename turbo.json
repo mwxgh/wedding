@@ -1,22 +1,38 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalPassThroughEnv": ["PORT"],
+  "globalPassThroughEnv": [
+    "PORT",
+    "WEB_ORIGIN",
+    "DATABASE_URL",
+    "JWT_EXPIRES_IN",
+    "S3_REGION",
+    "S3_BUCKET",
+    "UPLOAD_MAX_MB",
+    "API_URL",
+    "ADMIN_EMAIL",
+    "ADMIN_PASSWORD"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "!.next/dev/**"],
+      "env": ["NEXT_PUBLIC_API_URL"]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^build"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
+    },
+    "test": {
+      "dependsOn": ["^build"]
     }
   }
 }
