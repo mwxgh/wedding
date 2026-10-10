@@ -5,6 +5,9 @@ import type {
   PublicWedding,
 } from '@repo/contracts';
 import { Card, CardContent } from '@repo/ui/components/card';
+import { LoveCursor } from '@repo/ui/components/love-cursor';
+import { LoveJourney } from '@repo/ui/components/love-journey';
+import { SoundToggle } from '@repo/ui/components/sound-toggle';
 
 import { serverGet } from '../_lib/api';
 import { SIDE_LABEL, formatDate, vietQrUrl } from '../_lib/format';
@@ -47,16 +50,19 @@ export async function WeddingPage({
 
   return (
     <main>
+      <LoveCursor />
+      <SoundToggle src="/music/wedding.mp3" />
       <Hero
         groomName={info.groomName}
         brideName={info.brideName}
         date={formatDate(info.weddingDate)}
+        recipient={invitation?.name}
       >
         <Countdown target={info.weddingDate} />
         {invitation && (
           <div
-            className="mt-7 inline-block rounded-2xl border bg-card/70 px-6 py-4
-              backdrop-blur"
+            className={`mt-7 inline-block rounded-2xl border bg-card/70 px-6
+            py-4 backdrop-blur`}
           >
             <p className="text-muted-foreground">Trân trọng kính mời</p>
             <strong className="font-serif text-2xl font-medium text-rose-deep">
@@ -73,8 +79,8 @@ export async function WeddingPage({
             title="Chúng mình về chung một nhà"
           />
           <div
-            className="grid items-center gap-6 text-center
-              sm:grid-cols-[1fr_auto_1fr]"
+            className={`grid items-center gap-6 text-center
+              sm:grid-cols-[1fr_auto_1fr]`}
           >
             <div>
               <h3 className="font-serif text-3xl text-rose-deep">
@@ -100,8 +106,8 @@ export async function WeddingPage({
           </div>
           {info.story && (
             <p
-              className="mx-auto mt-10 max-w-2xl text-center text-lg
-                whitespace-pre-line"
+              className={`mx-auto mt-10 max-w-2xl text-center text-lg
+              whitespace-pre-line`}
             >
               {info.story}
             </p>
@@ -190,6 +196,9 @@ export async function WeddingPage({
           {info.groomName} &amp; {info.brideName}
         </p>
       </footer>
+
+      {/* last: it adds the scroll space its finale plays in */}
+      <LoveJourney groomName={info.groomName} brideName={info.brideName} />
     </main>
   );
 }
