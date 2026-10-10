@@ -1,7 +1,8 @@
-import pluginNext from "@next/eslint-plugin-next";
-import pluginReactHooks from "eslint-plugin-react-hooks";
-import globals from "globals";
-import { config as baseConfig } from "./base.js";
+import pluginNext from '@next/eslint-plugin-next';
+import pluginReactHooks from 'eslint-plugin-react-hooks';
+import globals from 'globals';
+
+import { config as baseConfig } from './base.js';
 
 /**
  * A custom ESLint configuration for Next.js apps.
@@ -19,15 +20,15 @@ export const nextJsConfig = [
   },
   {
     plugins: {
-      "@next/next": pluginNext,
+      '@next/next': pluginNext,
     },
     rules: {
       ...pluginNext.configs.recommended.rules,
-      ...pluginNext.configs["core-web-vitals"].rules,
+      ...pluginNext.configs['core-web-vitals'].rules,
     },
   },
   pluginReactHooks.configs.flat.recommended,
   {
-    ignores: [".next/**"],
+    ignores: ['.next/**'],
   },
 ];

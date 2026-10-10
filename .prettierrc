@@ -1,3 +1,36 @@
 {
-  "singleQuote": true
+  "singleQuote": true,
+  "printWidth": 80,
+  "overrides": [
+    {
+      "files": ["*.js", "*.mjs", "*.ts", "*.tsx"],
+      "options": {
+        "plugins": [
+          "@trivago/prettier-plugin-sort-imports",
+          "prettier-plugin-tailwindcss",
+          "prettier-plugin-classnames",
+          "prettier-plugin-merge"
+        ],
+        "importOrder": [
+          "<BUILTIN_MODULES>",
+          "^(react|react-dom)(/.*)?$",
+          "^next(/.*)?$",
+          "^@nestjs/(.*)$",
+          "<THIRD_PARTY_MODULES>",
+          "^@repo/(.*)$",
+          "^@/(.*)$",
+          "^#(.*)$",
+          "^[.]"
+        ],
+        "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+        "importOrderSeparation": true,
+        "importOrderSortSpecifiers": true,
+        "tailwindStylesheet": "./packages/ui/src/styles/globals.css",
+        "tailwindFunctions": ["cn", "cva"],
+        "customFunctions": ["cn", "cva"],
+        "endingPosition": "absolute",
+        "importOrderSideEffects": false
+      }
+    }
+  ]
 }

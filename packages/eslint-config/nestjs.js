@@ -1,9 +1,9 @@
-import js from "@eslint/js";
-import eslintConfigPrettier from "eslint-config-prettier";
-import turboPlugin from "eslint-plugin-turbo";
-import onlyWarn from "eslint-plugin-only-warn";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import js from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import onlyWarn from 'eslint-plugin-only-warn';
+import turboPlugin from 'eslint-plugin-turbo';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 /**
  * ESLint configuration for NestJS apps (decorators require the TypeScript parser).
@@ -22,7 +22,7 @@ export const config = tseslint.config(
       turbo: turboPlugin,
     },
     rules: {
-      "turbo/no-undeclared-env-vars": "warn",
+      'turbo/no-undeclared-env-vars': 'warn',
     },
   },
   {
@@ -31,6 +31,6 @@ export const config = tseslint.config(
     },
   },
   {
-    ignores: ["dist/**"],
+    ignores: ['dist/**'],
   },
 );

@@ -1,0 +1,5 @@
+**/src/generated/
+**/next-env.d.ts
+**/dist/
+**/.next/
+pnpm-lock.yaml
