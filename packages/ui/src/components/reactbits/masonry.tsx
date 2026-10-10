@@ -266,16 +266,16 @@ const Masonry: React.FC<MasonryProps> = ({
           onMouseLeave={(e) => handleMouseLeave(item.id, e.currentTarget)}
         >
           <div
-            className="relative h-full w-full rounded-[10px] bg-cover bg-center
-              text-[10px] leading-[10px] uppercase
-              shadow-[0px_10px_50px_-10px_rgba(0,0,0,0.2)]"
+            className={`relative h-full w-full rounded-[10px] bg-cover bg-center
+            text-[10px] leading-[10px] uppercase
+            shadow-[0px_10px_50px_-10px_rgba(0,0,0,0.2)]`}
             style={{ backgroundImage: `url(${item.img})` }}
           >
             {colorShiftOnHover && (
               <div
-                className="color-overlay pointer-events-none absolute inset-0
-                  rounded-[10px] bg-gradient-to-tr from-pink-500/50
-                  to-sky-500/50 opacity-0"
+                className={`color-overlay pointer-events-none absolute inset-0
+                rounded-[10px] bg-gradient-to-tr from-pink-500/50 to-sky-500/50
+                opacity-0`}
               />
             )}
           </div>

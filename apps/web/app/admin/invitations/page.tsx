@@ -375,8 +375,8 @@ export default function InvitationsPage() {
                       required
                     />
                     <label
-                      className="flex items-center gap-1.5 text-sm
-                        whitespace-nowrap"
+                      className={`flex items-center gap-1.5 text-sm
+                      whitespace-nowrap`}
                     >
                       <Checkbox
                         checked={g.isChild}

@@ -453,9 +453,9 @@ const ShinyText = ({
       {glow > 0 ? (
         <span
           ref={glowRef}
-          className="pointer-events-none absolute inset-0
+          className={`pointer-events-none absolute inset-0
             [background-size:100%_100%] bg-clip-text bg-no-repeat
-            [filter:blur(0.14em)] select-none [-webkit-background-clip:text]"
+            [filter:blur(0.14em)] select-none [-webkit-background-clip:text]`}
           aria-hidden="true"
         >
           {content}

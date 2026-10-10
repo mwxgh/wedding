@@ -40,12 +40,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="grid min-h-screen md:grid-cols-[240px_1fr]">
       <nav
-        className="flex flex-row flex-wrap gap-1 border-b bg-sidebar p-3
-          md:flex-col md:border-r md:border-b-0 md:px-3 md:py-6"
+        className={`flex flex-row flex-wrap gap-1 border-b bg-sidebar p-3
+          md:flex-col md:border-r md:border-b-0 md:px-3 md:py-6`}
       >
         <div
-          className="mb-1 w-full px-3 font-script text-3xl text-rose-deep
-            md:mb-5"
+          className={`mb-1 w-full px-3 font-script text-3xl text-rose-deep
+            md:mb-5`}
         >
           Wedding Admin
         </div>

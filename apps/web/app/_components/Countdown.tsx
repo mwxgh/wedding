@@ -32,8 +32,8 @@ export function Countdown({ target }: { target: string }) {
         return (
           <div
             key={label}
-            className="flex min-w-18 flex-col items-center rounded-2xl border
-              bg-card px-2 py-3 shadow-soft"
+            className={`flex min-w-18 flex-col items-center rounded-2xl border
+            bg-card px-2 py-3 shadow-soft`}
           >
             <Counter
               value={value}

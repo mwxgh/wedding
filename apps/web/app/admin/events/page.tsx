@@ -183,8 +183,8 @@ export default function EventsPage() {
                 Bàn tiệc ({ev.tables.length})
               </h4>
               <div
-                className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))]
-                  gap-2.5"
+                className={`grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))]
+                gap-2.5`}
               >
                 {ev.tables.map((t) => {
                   const seated = t.seats.reduce(

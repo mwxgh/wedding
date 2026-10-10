@@ -125,7 +125,7 @@ export default function PhotosAdminPage() {
       </Card>
 
       <div
-        className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3"
+        className={'grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3'}
       >
         {data?.map((p) => (
           <Card key={p.id} className="pt-0">

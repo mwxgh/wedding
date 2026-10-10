@@ -92,7 +92,7 @@ export function FormField({
 export function FieldRow({ children }: { children: ReactNode }) {
   return (
     <div
-      className="grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]"
+      className={'grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]'}
     >
       {children}
     </div>

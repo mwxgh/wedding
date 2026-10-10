@@ -12,7 +12,7 @@
           "prettier-plugin-merge"
         ],
         "importOrder": [
-          "<BUILTIN_MODULES>",
+          "^node:(.*)$",
           "^(react|react-dom)(/.*)?$",
           "^next(/.*)?$",
           "^@nestjs/(.*)$",
@@ -29,7 +29,8 @@
         "tailwindFunctions": ["cn", "cva"],
         "customFunctions": ["cn", "cva"],
         "endingPosition": "absolute",
-        "importOrderSideEffects": false
+        "importOrderSideEffects": false,
+        "syntaxTransformation": true
       }
     }
   ]
