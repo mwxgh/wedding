@@ -1,4 +1,4 @@
-import { config } from "@repo/eslint-config/nestjs";
+import { config } from '@repo/eslint-config/nestjs';
 
 /** @type {import("eslint").Linter.Config[]} */
 export default config;

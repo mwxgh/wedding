@@ -2,7 +2,6 @@
   "name": "api",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
@@ -12,9 +11,21 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1124.0",
+    "@aws-sdk/s3-request-presigner": "3.1124.0",
     "@nestjs/common": "12.1.2",
     "@nestjs/core": "12.1.2",
+    "@nestjs/jwt": "12.0.2",
+    "@nestjs/mapped-types": "12.0.0",
     "@nestjs/platform-express": "12.1.2",
+    "@repo/contracts": "workspace:*",
+    "@repo/db": "workspace:*",
+    "@repo/validation": "workspace:*",
+    "bcryptjs": "3.0.3",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "dotenv": "18.0.6",
+    "nanoid": "5.1.6",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
@@ -24,6 +35,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/express": "^5.0.0",
+    "@types/multer": "2.0.0",
     "@types/node": "26.4.1",
     "eslint": "10.9.1",
     "typescript": "~6.0.2"
