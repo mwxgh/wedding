@@ -44,6 +44,24 @@ enum Relation {
   OTHER
 }
 
+enum PlanCategory {
+  VENUE
+  FOOD
+  ATTIRE
+  PHOTO
+  DECOR
+  CEREMONY
+  INVITATION
+  RINGS
+  BEAUTY
+  ENTERTAINMENT
+  TRANSPORT
+  GIFTS
+  PAPERWORK
+  HONEYMOON
+  OTHER
+}
+
 model WeddingInfo {
   id            Int      @id @default(1)
   brideName     String
@@ -53,6 +71,8 @@ model WeddingInfo {
   weddingDate   DateTime
   story         String?  @db.Text
   coverPhotoKey String?
+  /// Total wedding budget target, VND
+  budget        BigInt?
   updatedAt     DateTime @updatedAt
 }
 
@@ -60,6 +80,12 @@ model Event {
   id          String            @id @default(uuid(7)) @db.Char(36)
   name        String
   side        Side
+  /// Days from WeddingInfo.weddingDate (0 = the wedding day, -1 = the day before)
+  dayOffset   Int               @default(0)
+  /// Vietnam wall-clock time, HH:mm
+  startTime   String            @default("00:00") @db.Char(5)
+  endTime     String?           @db.Char(5)
+  /// Derived from weddingDate + dayOffset + startTime/endTime; never set directly
   startAt     DateTime
   endAt       DateTime?
   venueName   String
@@ -200,4 +226,55 @@ model AdminUser {
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
+}
+
+/// A planned wedding cost; what was actually paid lives in its payments
+model Expense {
+  id        String           @id @default(uuid(7)) @db.Char(36)
+  category  PlanCategory
+  name      String
+  vendor    String?
+  /// Expected cost, VND
+  estimated BigInt           @default(0)
+  /// Who pays for it
+  side      Side             @default(BOTH)
+  dueDate   DateTime?
+  note      String?          @db.Text
+  sortOrder Int              @default(0)
+  createdAt DateTime         @default(now())
+  payments  ExpensePayment[]
+  tasks     Task[]
+
+  @@index([category])
+}
+
+/// Deposit, instalment or final payment of an expense
+model ExpensePayment {
+  id        String   @id @default(uuid(7)) @db.Char(36)
+  expenseId String   @db.Char(36)
+  amount    BigInt
+  paidAt    DateTime @default(now())
+  note      String?
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@index([expenseId])
+}
+
+/// Wedding to-do item
+model Task {
+  id        String       @id @default(uuid(7)) @db.Char(36)
+  title     String
+  category  PlanCategory @default(OTHER)
+  dueDate   DateTime?
+  doneAt    DateTime?
+  /// Who takes care of it (null = not assigned)
+  assignee  Side?
+  note      String?      @db.Text
+  expenseId String?      @db.Char(36)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  expense   Expense?     @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  @@index([dueDate])
+  @@index([expenseId])
 }

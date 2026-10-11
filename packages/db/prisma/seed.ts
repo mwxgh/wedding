@@ -31,7 +31,8 @@ async function main() {
       groomName: 'Minh Tuấn',
       brideParents: 'Ông Nguyễn Văn A & Bà Trần Thị B',
       groomParents: 'Ông Lê Văn C & Bà Phạm Thị D',
-      weddingDate: new Date('2027-01-16T11:00:00+07:00'),
+      // a calendar day; event times hang off it (Event.dayOffset/startTime)
+      weddingDate: new Date('2027-01-16T00:00:00+07:00'),
       story:
         'Chúng mình gặp nhau vào một chiều mưa Hà Nội. Sau 5 năm bên nhau, chúng mình quyết định về chung một nhà.',
     },
@@ -42,6 +43,8 @@ async function main() {
       data: {
         name: 'Lễ Vu Quy',
         side: Side.BRIDE,
+        dayOffset: 0,
+        startTime: '09:00',
         startAt: new Date('2027-01-16T09:00:00+07:00'),
         venueName: 'Tư gia nhà gái',
         address: '12 Phố Huế, Hai Bà Trưng, Hà Nội',
@@ -52,6 +55,8 @@ async function main() {
       data: {
         name: 'Tiệc Thành Hôn',
         side: Side.BOTH,
+        dayOffset: 0,
+        startTime: '11:30',
         startAt: new Date('2027-01-16T11:30:00+07:00'),
         venueName: 'Trung tâm tiệc cưới Hoa Sen',
         address: '88 Láng Hạ, Đống Đa, Hà Nội',

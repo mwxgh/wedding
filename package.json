@@ -20,7 +20,8 @@
     "db:generate": "pnpm --filter @repo/db db:generate",
     "test": "turbo run test",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,css,json,md}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:seed:demo": "pnpm --filter @repo/db db:seed:demo"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
