@@ -13,6 +13,7 @@ import type {
 } from '@repo/contracts';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
+import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -35,6 +36,7 @@ import {
   formatVnd,
 } from '../../_lib/format';
 import { useAdminData, useAuth } from '../_lib/auth';
+import { giftSheets } from '../_lib/exports';
 import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
 
 interface GiftForm {
@@ -105,16 +107,23 @@ export default function GiftsPage() {
       <PageHeader
         title="Mừng cưới"
         actions={
-          <Button
-            size="lg"
-            onClick={() => {
-              setFormError(null);
-              setForm(emptyGift);
-            }}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Ghi nhận
-          </Button>
+          <>
+            <ExportButton
+              fileName="Mung cuoi"
+              disabled={!data}
+              sheets={() => giftSheets(data ?? [])}
+            />
+            <Button
+              size="lg"
+              onClick={() => {
+                setFormError(null);
+                setForm(emptyGift);
+              }}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Ghi nhận
+            </Button>
+          </>
         }
       />
       <ErrorAlert error={error} />

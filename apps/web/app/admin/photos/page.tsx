@@ -12,6 +12,7 @@ import type {
 } from '@repo/contracts';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
+import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -22,6 +23,7 @@ import { toast } from '@repo/ui/components/sonner';
 import { FormField, StatusBadge } from '../../_components/common';
 import { MODERATION_LABEL } from '../../_lib/format';
 import { useAdminData, useAuth } from '../_lib/auth';
+import { photoSheets } from '../_lib/exports';
 import { ModerationTabs } from '../_lib/moderation-tabs';
 import { ErrorAlert, PageHeader } from '../_lib/ui';
 
@@ -79,7 +81,16 @@ export default function PhotosAdminPage() {
     <>
       <PageHeader
         title="Album ảnh"
-        actions={<ModerationTabs value={status} onChange={setStatus} />}
+        actions={
+          <>
+            <ModerationTabs value={status} onChange={setStatus} />
+            <ExportButton
+              fileName="Album anh"
+              disabled={!data}
+              sheets={() => photoSheets(data ?? [])}
+            />
+          </>
+        }
       />
       <ErrorAlert error={error} />
 

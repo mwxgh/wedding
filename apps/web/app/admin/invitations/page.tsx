@@ -20,6 +20,7 @@ import type {
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
+import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -44,6 +45,7 @@ import {
   formatDateTime,
 } from '../../_lib/format';
 import { useAdminData, useAuth } from '../_lib/auth';
+import { invitationSheets } from '../_lib/exports';
 import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
 
 type GuestForm = { name: string; isChild: boolean };
@@ -174,13 +176,22 @@ export default function InvitationsPage() {
       <PageHeader
         title="Thiệp mời & RSVP"
         actions={
-          <Button
-            size="lg"
-            onClick={() => open(emptyForm(events?.map((e) => e.id) ?? []))}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Tạo thiệp mời
-          </Button>
+          <>
+            <ExportButton
+              fileName="Thiep moi va RSVP"
+              disabled={!data || !events}
+              sheets={() =>
+                invitationSheets(list, events ?? [], window.location.origin)
+              }
+            />
+            <Button
+              size="lg"
+              onClick={() => open(emptyForm(events?.map((e) => e.id) ?? []))}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Tạo thiệp mời
+            </Button>
+          </>
         }
       />
       <ErrorAlert error={error} />

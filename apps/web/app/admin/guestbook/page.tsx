@@ -14,11 +14,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { ExportButton } from '@repo/ui/components/export-button';
 import { toast } from '@repo/ui/components/sonner';
 
 import { StatusBadge } from '../../_components/common';
 import { MODERATION_LABEL, formatDateTime } from '../../_lib/format';
 import { useAdminData, useAuth } from '../_lib/auth';
+import { guestbookSheets } from '../_lib/exports';
 import { ModerationTabs } from '../_lib/moderation-tabs';
 import { ErrorAlert, PageHeader } from '../_lib/ui';
 
@@ -48,7 +50,16 @@ export default function GuestbookAdminPage() {
     <>
       <PageHeader
         title="Sổ lưu bút"
-        actions={<ModerationTabs value={status} onChange={setStatus} />}
+        actions={
+          <>
+            <ModerationTabs value={status} onChange={setStatus} />
+            <ExportButton
+              fileName="So luu but"
+              disabled={!data}
+              sheets={() => guestbookSheets(data ?? [])}
+            />
+          </>
+        }
       />
       <ErrorAlert error={error} />
       <div className="grid gap-3">
