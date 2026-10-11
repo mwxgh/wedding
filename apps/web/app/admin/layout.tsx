@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 
 import {
   CalendarHeartIcon,
+  ClipboardListIcon,
   ExternalLinkIcon,
   GiftIcon,
   ImagesIcon,
@@ -22,6 +23,7 @@ import { AuthProvider, useAuth } from './_lib/auth';
 
 const NAV = [
   ['/admin', 'Tổng quan', LayoutDashboardIcon],
+  ['/admin/plan', 'Kế hoạch', ClipboardListIcon],
   ['/admin/invitations', 'Thiệp mời & RSVP', MailIcon],
   ['/admin/events', 'Sự kiện & bàn tiệc', CalendarHeartIcon],
   ['/admin/guestbook', 'Sổ lưu bút', MessageSquareHeartIcon],
