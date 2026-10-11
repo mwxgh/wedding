@@ -4,7 +4,14 @@ import { useState } from 'react';
 
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 
-import type { AdminEvent, EventInput, Side } from '@repo/contracts';
+import {
+  type AdminEvent,
+  type EventInput,
+  type EventTimingInput,
+  type Side,
+  type WeddingInfoJson,
+  vnDay,
+} from '@repo/contracts';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import {
@@ -15,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -23,21 +31,21 @@ import {
 import { toast } from '@repo/ui/components/sonner';
 
 import { FieldRow, FormField } from '../../_components/common';
+import { SIDE_LABEL, formatDateTime } from '../../_lib/format';
 import {
-  SIDE_LABEL,
-  formatDateTime,
-  fromLocalInput,
-  toLocalInput,
-} from '../../_lib/format';
+  EventTimingFields,
+  emptyTiming,
+  offsetLabel,
+} from '../_components/event-timing';
 import { useAdminData, useAuth } from '../_lib/auth';
+import { eventSheets } from '../_lib/exports';
 import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
 
 interface EventForm {
   id?: string;
   name: string;
   side: Side;
-  startAt: string;
-  endAt: string;
+  timing: EventTimingInput;
   venueName: string;
   address: string;
   mapUrl: string;
@@ -47,8 +55,7 @@ interface EventForm {
 const emptyEvent: EventForm = {
   name: '',
   side: 'BOTH',
-  startAt: '',
-  endAt: '',
+  timing: emptyTiming,
   venueName: '',
   address: '',
   mapUrl: '',
@@ -58,6 +65,10 @@ const emptyEvent: EventForm = {
 export default function EventsPage() {
   const { api } = useAuth();
   const { data, error, reload } = useAdminData<AdminEvent[]>('/admin/events');
+  const { data: wedding } = useAdminData<WeddingInfoJson | null>(
+    '/admin/wedding',
+  );
+  const weddingDay = wedding ? vnDay(wedding.weddingDate) : null;
   const [form, setForm] = useState<EventForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [tableName, setTableName] = useState<Record<string, string>>({});
@@ -68,11 +79,10 @@ export default function EventsPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    const { id, ...rest } = form;
+    const { id, timing, ...rest } = form;
     const body: EventInput = {
       ...rest,
-      startAt: fromLocalInput(rest.startAt) ?? '',
-      endAt: fromLocalInput(rest.endAt),
+      ...timing,
       mapUrl: rest.mapUrl || undefined,
     };
     try {
@@ -123,16 +133,23 @@ export default function EventsPage() {
       <PageHeader
         title="Sự kiện & bàn tiệc"
         actions={
-          <Button
-            size="lg"
-            onClick={() => {
-              setFormError(null);
-              setForm(emptyEvent);
-            }}
-          >
-            <PlusIcon data-icon="inline-start" />
-            Thêm sự kiện
-          </Button>
+          <>
+            <ExportButton
+              fileName="Su kien va ban tiec"
+              disabled={!data}
+              sheets={() => eventSheets(data ?? [])}
+            />
+            <Button
+              size="lg"
+              onClick={() => {
+                setFormError(null);
+                setForm(emptyEvent);
+              }}
+            >
+              <PlusIcon data-icon="inline-start" />
+              Thêm sự kiện
+            </Button>
+          </>
         }
       />
       <ErrorAlert error={error} />
@@ -143,8 +160,8 @@ export default function EventsPage() {
             <CardHeader>
               <CardTitle className="font-serif text-xl">{ev.name}</CardTitle>
               <CardDescription>
-                {SIDE_LABEL[ev.side]} · {formatDateTime(ev.startAt)} ·{' '}
-                {ev.venueName} — {ev.address}
+                {SIDE_LABEL[ev.side]} · {offsetLabel(ev.dayOffset)},{' '}
+                {formatDateTime(ev.startAt)} · {ev.venueName} — {ev.address}
               </CardDescription>
               <CardAction className="flex gap-1">
                 <Button
@@ -157,8 +174,11 @@ export default function EventsPage() {
                       id: ev.id,
                       name: ev.name,
                       side: ev.side,
-                      startAt: toLocalInput(ev.startAt),
-                      endAt: toLocalInput(ev.endAt),
+                      timing: {
+                        dayOffset: ev.dayOffset,
+                        startTime: ev.startTime,
+                        endTime: ev.endTime,
+                      },
                       venueName: ev.venueName,
                       address: ev.address,
                       mapUrl: ev.mapUrl ?? '',
@@ -289,23 +309,15 @@ export default function EventsPage() {
                 />
               </FormField>
             </FieldRow>
-            <FieldRow>
-              <FormField label="Bắt đầu">
-                <Input
-                  type="datetime-local"
-                  value={form.startAt}
-                  onChange={(e) => set({ startAt: e.target.value })}
-                  required
-                />
-              </FormField>
-              <FormField label="Kết thúc (tuỳ chọn)">
-                <Input
-                  type="datetime-local"
-                  value={form.endAt}
-                  onChange={(e) => set({ endAt: e.target.value })}
-                />
-              </FormField>
-            </FieldRow>
+            <EventTimingFields
+              value={form.timing}
+              onChange={(timing) => set({ timing })}
+              weddingDay={weddingDay}
+            />
+            <p className="-mt-2 text-xs text-muted-foreground">
+              Giờ sự kiện tính theo ngày cưới; đổi ngày cưới trong Cài đặt thì
+              sự kiện tự dời theo.
+            </p>
             <FormField label="Địa điểm">
               <Input
                 value={form.venueName}

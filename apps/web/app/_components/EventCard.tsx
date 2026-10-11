@@ -1,12 +1,10 @@
 'use client';
 
-import { MapPinIcon } from 'lucide-react';
-
 import type { EventJson } from '@repo/contracts';
-import { buttonVariants } from '@repo/ui/components/button';
 import SpotlightCard from '@repo/ui/components/reactbits/spotlight-card';
 
 import { SIDE_LABEL, formatDate, formatTime } from '../_lib/format';
+import { MapDialog } from './MapDialog';
 import { StatusBadge } from './common';
 
 export function EventCard({ event }: { event: EventJson }) {
@@ -28,17 +26,8 @@ export function EventCard({ event }: { event: EventJson }) {
         <p className="font-semibold">{event.venueName}</p>
         <p className="text-muted-foreground">{event.address}</p>
       </div>
-      {event.mapUrl && (
-        <a
-          className={buttonVariants({ variant: 'outline' })}
-          href={event.mapUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          <MapPinIcon data-icon="inline-start" />
-          Xem bản đồ
-        </a>
-      )}
+      {/* the address alone is enough to show the map */}
+      {event.address && <MapDialog venue={event} title={event.name} />}
     </SpotlightCard>
   );
 }

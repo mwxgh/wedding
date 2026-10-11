@@ -1,8 +1,9 @@
-import type {
-  PublicGallery,
-  PublicGuestbookEntry,
-  PublicInvitation,
-  PublicWedding,
+import {
+  type PublicGallery,
+  type PublicGuestbookEntry,
+  type PublicInvitation,
+  type PublicWedding,
+  weddingStart,
 } from '@repo/contracts';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { LoveCursor } from '@repo/ui/components/love-cursor';
@@ -58,7 +59,10 @@ export async function WeddingPage({
         date={formatDate(info.weddingDate)}
         recipient={invitation?.name}
       >
-        <Countdown target={info.weddingDate} />
+        {/* counts down to the first event of the wedding day */}
+        <Countdown
+          target={weddingStart(info.weddingDate, wedding.events).toISOString()}
+        />
         {invitation && (
           <div
             className={`mt-7 inline-block rounded-2xl border bg-card/70 px-6
