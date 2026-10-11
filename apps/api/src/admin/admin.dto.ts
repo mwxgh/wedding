@@ -3,19 +3,26 @@ import { PartialType } from '@nestjs/mapped-types';
 import type {
   AlbumInput,
   BankAccountInput,
+  BudgetInput,
   EventInput,
+  ExpenseInput,
   GiftInput,
   GuestInput,
   InvitationEventInput,
   InvitationInput,
   ModerationInput,
+  PaymentInput,
+  ScheduleInput,
   TableInput,
+  TaskInput,
   UpdatePhotoInput,
   WeddingInfoInput,
 } from '@repo/contracts';
+import { DAY_PATTERN, TIME_PATTERN } from '@repo/contracts';
 import {
   GiftMethod,
   ModerationStatus,
+  PlanCategory,
   Relation,
   RsvpStatus,
   Side,
@@ -40,22 +47,46 @@ export class WeddingInfoDto implements WeddingInfoInput {
   @StringField({ minLength: 1, maxLength: 100 }) groomName: string;
   @StringField({ optional: true, maxLength: 255 }) brideParents?: string;
   @StringField({ optional: true, maxLength: 255 }) groomParents?: string;
-  @DateStringField() weddingDate: string;
+  /** First save only; the day is changed through `ScheduleDto`. */
+  @DateStringField({ optional: true }) weddingDate?: string;
   @StringField({ optional: true }) story?: string;
   @StringField({ optional: true }) coverPhotoKey?: string;
 }
 
-export class EventDto implements EventInput {
+const TIME = { pattern: TIME_PATTERN };
+
+class EventTimingDto {
+  @IntField({ min: -365, max: 365 }) dayOffset: number;
+  @StringField(TIME) startTime: string;
+  @StringField({ ...TIME, optional: true, nullable: true })
+  endTime?: string | null;
+}
+
+export class EventDto extends EventTimingDto implements EventInput {
   @StringField({ minLength: 1, maxLength: 191 }) name: string;
   @EnumField(Side) side: Side;
-  @DateStringField() startAt: string;
-  @DateStringField({ optional: true }) endAt?: string;
   @StringField({ minLength: 1, maxLength: 191 }) venueName: string;
   @StringField({ minLength: 1, maxLength: 191 }) address: string;
   @UrlField({ optional: true }) mapUrl?: string;
   @IntField({ optional: true }) sortOrder?: number;
 }
 export class UpdateEventDto extends PartialType(EventDto) {}
+
+class ScheduleEventDto extends EventTimingDto {
+  @UuidField() id: string;
+  @StringField({ optional: true, minLength: 1, maxLength: 191 })
+  venueName?: string;
+  @StringField({ optional: true, minLength: 1, maxLength: 191 })
+  address?: string;
+  @UrlField({ optional: true, nullable: true }) mapUrl?: string | null;
+}
+
+export class ScheduleDto implements ScheduleInput {
+  @StringField({ pattern: DAY_PATTERN })
+  weddingDate: string;
+  @ClassField(() => ScheduleEventDto, { each: true })
+  events: ScheduleEventDto[];
+}
 
 export class TableDto implements TableInput {
   @StringField({ minLength: 1, maxLength: 100 }) name: string;
@@ -133,3 +164,38 @@ export class BankAccountDto implements BankAccountInput {
   @IntField({ optional: true }) sortOrder?: number;
 }
 export class UpdateBankAccountDto extends PartialType(BankAccountDto) {}
+
+// ---------- planning ----------
+
+export class BudgetDto implements BudgetInput {
+  @IntField({ min: 0, nullable: true }) budget: number | null;
+}
+
+export class ExpenseDto implements ExpenseInput {
+  @EnumField(PlanCategory) category: PlanCategory;
+  @StringField({ minLength: 1, maxLength: 191 }) name: string;
+  @StringField({ optional: true, maxLength: 191 }) vendor?: string;
+  @IntField({ optional: true, min: 0 }) estimated?: number;
+  @EnumField(Side, { optional: true }) side?: Side;
+  @DateStringField({ optional: true, nullable: true }) dueDate?: string | null;
+  @StringField({ optional: true }) note?: string;
+}
+export class UpdateExpenseDto extends PartialType(ExpenseDto) {}
+
+export class PaymentDto implements PaymentInput {
+  @IntField({ min: 1 }) amount: number;
+  @DateStringField({ optional: true }) paidAt?: string;
+  @StringField({ optional: true, maxLength: 191 }) note?: string;
+}
+
+export class TaskDto implements TaskInput {
+  @StringField({ minLength: 1, maxLength: 191 }) title: string;
+  @EnumField(PlanCategory, { optional: true }) category?: PlanCategory;
+  @DateStringField({ optional: true, nullable: true }) dueDate?: string | null;
+  @EnumField(Side, { optional: true, nullable: true }) assignee?: Side | null;
+  @StringField({ optional: true }) note?: string;
+  @UuidField({ version: '7', optional: true, nullable: true })
+  expenseId?: string | null;
+  @BooleanField({ optional: true }) done?: boolean;
+}
+export class UpdateTaskDto extends PartialType(TaskDto) {}

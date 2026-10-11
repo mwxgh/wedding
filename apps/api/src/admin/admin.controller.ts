@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -23,6 +24,8 @@ import {
   adminAlbumInclude,
   adminGuestbookInclude,
   adminPhotoInclude,
+  atVn,
+  vnDay,
 } from '@repo/contracts';
 import {
   type Album,
@@ -41,9 +44,11 @@ import {
   AlbumDto,
   ModerationDto,
   PhotoUploadDto,
+  ScheduleDto,
   UpdatePhotoDto,
   WeddingInfoDto,
 } from './admin.dto';
+import { applySchedule } from './schedule';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
@@ -55,58 +60,118 @@ export class AdminController {
 
   @Get('dashboard')
   async dashboard(): Promise<DashboardData> {
-    const [
-      invitations,
-      opened,
-      events,
-      rsvps,
-      guestbookPending,
-      photosPending,
-      gifts,
-    ] = await Promise.all([
-      this.prisma.invitation.count(),
-      this.prisma.invitation.count({ where: { openedAt: { not: null } } }),
-      this.prisma.event.findMany({ orderBy: { startAt: 'asc' } }),
-      this.prisma.invitationEvent.groupBy({
-        by: ['eventId', 'status'],
-        _count: { _all: true },
-        _sum: { attendingCount: true },
-      }),
-      this.prisma.guestbookEntry.count({
-        where: { status: ModerationStatus.PENDING },
-      }),
-      this.prisma.photo.count({ where: { status: ModerationStatus.PENDING } }),
-      this.prisma.gift.aggregate({
-        _sum: { amount: true },
-        _count: { _all: true },
-      }),
-    ]);
+    const [invitations, events, guestbookPending, photosPending, gifts] =
+      await Promise.all([
+        this.prisma.invitation.findMany({
+          select: {
+            side: true,
+            relation: true,
+            maxGuests: true,
+            openedAt: true,
+            events: {
+              select: {
+                eventId: true,
+                status: true,
+                attendingCount: true,
+                respondedAt: true,
+                tableId: true,
+              },
+            },
+          },
+        }),
+        this.prisma.event.findMany({
+          orderBy: { startAt: 'asc' },
+          include: { tables: { select: { capacity: true } } },
+        }),
+        this.prisma.guestbookEntry.count({
+          where: { status: ModerationStatus.PENDING },
+        }),
+        this.prisma.photo.count({
+          where: { status: ModerationStatus.PENDING },
+        }),
+        this.prisma.gift.groupBy({
+          by: ['method'],
+          _count: { _all: true },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    const replies = invitations.flatMap((i) => i.events);
+    const eventStats = events.map((e) => {
+      const rows = replies.filter((r) => r.eventId === e.id);
+      const count = (s: RsvpStatus) =>
+        rows.filter((r) => r.status === s).length;
+      const attending = rows.filter((r) => r.status === RsvpStatus.ATTENDING);
+      return {
+        id: e.id,
+        name: e.name,
+        startAt: e.startAt,
+        invited: rows.length,
+        attending: attending.length,
+        declined: count(RsvpStatus.DECLINED),
+        maybe: count(RsvpStatus.MAYBE),
+        pending: count(RsvpStatus.PENDING),
+        headcount: attending.reduce((n, r) => n + r.attendingCount, 0),
+        seated: attending
+          .filter((r) => r.tableId)
+          .reduce((n, r) => n + r.attendingCount, 0),
+        capacity: e.tables.reduce((n, t) => n + t.capacity, 0),
+      };
+    });
+
+    // first RSVP of each invitation, and first open, bucketed per day
+    const firstReply = invitations
+      .map(
+        (i) =>
+          i.events
+            .map((e) => e.respondedAt)
+            .filter((d): d is Date => !!d)
+            .sort((a, b) => a.getTime() - b.getTime())[0],
+      )
+      .filter((d): d is Date => !!d);
+    const opens = invitations
+      .map((i) => i.openedAt)
+      .filter((d): d is Date => !!d);
+
+    const group = <K extends string>(
+      key: (i: (typeof invitations)[0]) => K,
+    ) => {
+      const map = new Map<K, { invitations: number; guests: number }>();
+      for (const i of invitations) {
+        const g = map.get(key(i)) ?? { invitations: 0, guests: 0 };
+        g.invitations += 1;
+        g.guests += i.maxGuests;
+        map.set(key(i), g);
+      }
+      return [...map.entries()].sort((a, b) => b[1].guests - a[1].guests);
+    };
 
     return {
-      invitations: { total: invitations, opened },
-      events: events.map((e) => {
-        const rows = rsvps.filter((r) => r.eventId === e.id);
-        const count = (s: RsvpStatus) =>
-          rows.find((r) => r.status === s)?._count._all ?? 0;
-        return {
-          id: e.id,
-          name: e.name,
-          startAt: e.startAt,
-          invited: rows.reduce((n, r) => n + r._count._all, 0),
-          attending: count(RsvpStatus.ATTENDING),
-          declined: count(RsvpStatus.DECLINED),
-          maybe: count(RsvpStatus.MAYBE),
-          pending: count(RsvpStatus.PENDING),
-          headcount: rows
-            .filter((r) => r.status === RsvpStatus.ATTENDING)
-            .reduce((n, r) => n + (r._sum.attendingCount ?? 0), 0),
-        };
-      }),
+      invitations: {
+        total: invitations.length,
+        opened: opens.length,
+        responded: firstReply.length,
+        guests: invitations.reduce((n, i) => n + i.maxGuests, 0),
+      },
+      events: eventStats,
+      timeline: dailyTimeline(opens, firstReply),
+      byRelation: group((i) => i.relation).map(([relation, g]) => ({
+        relation,
+        ...g,
+      })),
+      bySide: group((i) => i.side).map(([side, g]) => ({ side, ...g })),
       guestbookPending,
       photosPending,
       gifts: {
-        count: gifts._count._all,
-        totalAmount: gifts._sum.amount ?? 0n,
+        count: gifts.reduce((n, g) => n + g._count._all, 0),
+        totalAmount: gifts.reduce((n, g) => n + (g._sum.amount ?? 0n), 0n),
+        byMethod: gifts
+          .map((g) => ({
+            method: g.method,
+            count: g._count._all,
+            amount: g._sum.amount ?? 0n,
+          }))
+          .sort((a, b) => Number(b.amount - a.amount)),
       },
     };
   }
@@ -117,14 +182,34 @@ export class AdminController {
     return this.prisma.weddingInfo.findUnique({ where: { id: 1 } });
   }
 
+  /**
+   * Saves names and texts. The date is only taken on the first save; after
+   * that it changes through `PUT schedule` so events follow it.
+   */
   @Put('wedding')
-  saveWedding(@Body() dto: WeddingInfoDto): Promise<WeddingInfo> {
-    const data = { ...dto, weddingDate: new Date(dto.weddingDate) };
-    return this.prisma.weddingInfo.upsert({
+  async saveWedding(@Body() dto: WeddingInfoDto): Promise<WeddingInfo> {
+    const { weddingDate, ...data } = dto;
+    const exists = await this.prisma.weddingInfo.findUnique({
       where: { id: 1 },
-      create: { id: 1, ...data },
-      update: data,
+      select: { id: true },
     });
+    if (exists)
+      return this.prisma.weddingInfo.update({ where: { id: 1 }, data });
+    if (!weddingDate) throw new BadRequestException('Thiếu ngày cưới');
+    return this.prisma.weddingInfo.create({
+      data: { id: 1, ...data, weddingDate: atVn(vnDay(weddingDate)) },
+    });
+  }
+
+  /**
+   * The wedding day and every event's time in one save. Event timestamps,
+   * open task and expense due dates all follow the day.
+   */
+  @Put('schedule')
+  saveSchedule(@Body() dto: ScheduleDto): Promise<{ rescheduled: number }> {
+    return this.prisma.$transaction(async (tx) => ({
+      rescheduled: await applySchedule(tx, dto.weddingDate, dto.events),
+    }));
   }
 
   // --- Guestbook moderation
@@ -216,4 +301,28 @@ export class AdminController {
   deletePhoto(@Param('id') id: string): Promise<OkResponse> {
     return this.photos.remove(id);
   }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/**
+ * Daily counts in Vietnam time, zero-filled: the last 30 days, extended back
+ * to the first activity (at most 90 days) so the whole campaign is visible.
+ */
+function dailyTimeline(opens: Date[], replies: Date[]) {
+  const now = Date.now();
+  const first = Math.min(now, ...opens.map(Number), ...replies.map(Number));
+  const span = Math.min(89, Math.max(29, Math.ceil((now - first) / DAY_MS)));
+  const days = new Map<string, { opened: number; responded: number }>();
+  for (let i = span; i >= 0; i--) {
+    days.set(vnDay(new Date(now - i * DAY_MS)), { opened: 0, responded: 0 });
+  }
+  for (const d of opens) {
+    const day = days.get(vnDay(d));
+    if (day) day.opened += 1;
+  }
+  for (const d of replies) {
+    const day = days.get(vnDay(d));
+    if (day) day.responded += 1;
+  }
+  return [...days.entries()].map(([date, v]) => ({ date, ...v }));
 }

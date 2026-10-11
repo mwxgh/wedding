@@ -24,12 +24,14 @@ import {
   UpdateEventDto,
   UpdateTableDto,
 } from './admin.dto';
+import { eventTimingData, weddingDay } from './schedule';
 
-const toEventData = <T extends Partial<EventDto>>(dto: T) => ({
-  ...dto,
-  startAt: dto.startAt ? new Date(dto.startAt) : undefined,
-  endAt: dto.endAt ? new Date(dto.endAt) : undefined,
-});
+const splitTiming = <T extends Partial<EventDto>>({
+  dayOffset,
+  startTime,
+  endTime,
+  ...rest
+}: T) => ({ timing: { dayOffset, startTime, endTime }, rest });
 
 @Controller('admin')
 @UseGuards(AdminGuard)
@@ -46,15 +48,34 @@ export class EventsController {
 
   @Post('events')
   create(@Body() dto: EventDto): Promise<Event> {
-    const data = toEventData(dto);
-    return this.prisma.event.create({
-      data: { ...data, startAt: new Date(dto.startAt) },
-    });
+    const { rest } = splitTiming(dto);
+    return this.prisma.$transaction(async (tx) =>
+      tx.event.create({
+        data: { ...rest, ...eventTimingData(await weddingDay(tx), dto) },
+      }),
+    );
   }
 
+  /** Time fields are relative to the wedding day; timestamps are derived. */
   @Patch('events/:id')
   update(@Param('id') id: string, @Body() dto: UpdateEventDto): Promise<Event> {
-    return this.prisma.event.update({ where: { id }, data: toEventData(dto) });
+    const { timing, rest } = splitTiming(dto);
+    return this.prisma.$transaction(async (tx) => {
+      const current = await tx.event.findUniqueOrThrow({
+        where: { id },
+        select: { dayOffset: true, startTime: true, endTime: true },
+      });
+      const merged = {
+        dayOffset: timing.dayOffset ?? current.dayOffset,
+        startTime: timing.startTime ?? current.startTime,
+        endTime:
+          timing.endTime === undefined ? current.endTime : timing.endTime,
+      };
+      return tx.event.update({
+        where: { id },
+        data: { ...rest, ...eventTimingData(await weddingDay(tx), merged) },
+      });
+    });
   }
 
   @Delete('events/:id')

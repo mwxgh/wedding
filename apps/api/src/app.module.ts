@@ -4,6 +4,7 @@ import { AdminController } from './admin/admin.controller';
 import { EventsController } from './admin/events.controller';
 import { FinanceController } from './admin/finance.controller';
 import { InvitationsController } from './admin/invitations.controller';
+import { PlanController } from './admin/plan.controller';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { PhotoModule } from './photos/photo.module';
@@ -20,6 +21,7 @@ import { StorageModule } from './storage/storage.module';
     EventsController,
     InvitationsController,
     FinanceController,
+    PlanController,
   ],
 })
 export class AppModule {}
