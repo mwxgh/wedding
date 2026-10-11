@@ -6,7 +6,13 @@ import type {
   WeddingInfo,
 } from '@repo/db/browser';
 
-import type { RsvpStatus, Side } from './enums.js';
+import type {
+  GiftMethod,
+  PlanCategory,
+  Relation,
+  RsvpStatus,
+  Side,
+} from './enums.js';
 import type { Json } from './json.js';
 
 /**
@@ -153,14 +159,84 @@ export interface DashboardEventStat {
   declined: number;
   maybe: number;
   pending: number;
+  /** Guests confirmed (sum of attendingCount of ATTENDING replies). */
   headcount: number;
+  /** Guests of attending invitations already given a table. */
+  seated: number;
+  /** Total seats of the event's tables. */
+  capacity: number;
+}
+
+export interface DashboardDayStat {
+  /** Day in Vietnam time, YYYY-MM-DD. */
+  date: string;
+  /** Invitations opened for the first time that day. */
+  opened: number;
+  /** Invitations that sent their first RSVP that day. */
+  responded: number;
 }
 
 export interface DashboardData {
-  invitations: { total: number; opened: number };
+  invitations: {
+    total: number;
+    opened: number;
+    /** Invitations that answered at least one event. */
+    responded: number;
+    /** Sum of maxGuests: everyone invited. */
+    guests: number;
+  };
   events: DashboardEventStat[];
+  /** Daily activity, zero-filled, oldest first. */
+  timeline: DashboardDayStat[];
+  byRelation: { relation: Relation; invitations: number; guests: number }[];
+  bySide: { side: Side; invitations: number; guests: number }[];
   guestbookPending: number;
   photosPending: number;
-  gifts: { count: number; totalAmount: bigint };
+  gifts: {
+    count: number;
+    totalAmount: bigint;
+    byMethod: { method: GiftMethod; count: number; amount: bigint }[];
+  };
 }
 export type Dashboard = Json<DashboardData>;
+
+// ---------- planning ----------
+
+export const adminExpenseInclude = {
+  payments: { orderBy: { paidAt: 'asc' } },
+  _count: { select: { tasks: true } },
+} as const satisfies Prisma.ExpenseInclude;
+
+export type AdminExpenseData = Prisma.ExpenseGetPayload<{
+  include: typeof adminExpenseInclude;
+}>;
+export type AdminExpense = Json<AdminExpenseData>;
+
+export const adminTaskInclude = {
+  expense: { select: { id: true, name: true } },
+} as const satisfies Prisma.TaskInclude;
+
+export type AdminTaskData = Prisma.TaskGetPayload<{
+  include: typeof adminTaskInclude;
+}>;
+export type AdminTask = Json<AdminTaskData>;
+
+export interface PlanSummaryData {
+  weddingDate: Date | null;
+  /** Target set by the couple, VND. */
+  budget: bigint | null;
+  /** Sum of all expenses' estimates. */
+  estimated: bigint;
+  /** Sum of all payments made. */
+  paid: bigint;
+  byCategory: {
+    category: PlanCategory;
+    count: number;
+    estimated: bigint;
+    paid: bigint;
+  }[];
+  tasks: { total: number; done: number; overdue: number; dueSoon: number };
+  /** Next open tasks by due date (overdue first). */
+  upcoming: AdminTaskData[];
+}
+export type PlanSummary = Json<PlanSummaryData>;
