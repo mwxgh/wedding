@@ -41,6 +41,8 @@
     "ogl": "1.0.11",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "sonner": "2.0.8"
+    "recharts": "3.8.0",
+    "sonner": "2.0.8",
+    "write-excel-file": "4.1.1"
   }
 }
