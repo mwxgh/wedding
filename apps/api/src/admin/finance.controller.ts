@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -14,16 +15,11 @@ import {
   type OkResponse,
   adminGiftInclude,
 } from '@repo/contracts';
-import type { BankAccount, Gift } from '@repo/db';
+import { type Gift, GiftSource } from '@repo/db';
 
 import { AdminGuard } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  BankAccountDto,
-  GiftDto,
-  UpdateBankAccountDto,
-  UpdateGiftDto,
-} from './admin.dto';
+import { GiftDto, UpdateGiftDto } from './admin.dto';
 
 const toGiftData = <T extends Partial<GiftDto>>(dto: T) => ({
   ...dto,
@@ -50,40 +46,28 @@ export class FinanceController {
   }
 
   @Patch('gifts/:id')
-  updateGift(
+  async updateGift(
     @Param('id') id: string,
     @Body() dto: UpdateGiftDto,
   ): Promise<Gift> {
+    const gift = await this.prisma.gift.findUniqueOrThrow({ where: { id } });
+    // the bank confirmed these: keep what was received as it was received
+    if (
+      gift.source === GiftSource.PAYOS &&
+      (dto.amount !== undefined ||
+        dto.method !== undefined ||
+        dto.side !== undefined ||
+        dto.receivedAt !== undefined)
+    )
+      throw new BadRequestException(
+        'Khoản mừng từ payOS chỉ sửa được tên, ghi chú, thiệp và sự kiện',
+      );
     return this.prisma.gift.update({ where: { id }, data: toGiftData(dto) });
   }
 
   @Delete('gifts/:id')
   async removeGift(@Param('id') id: string): Promise<OkResponse> {
     await this.prisma.gift.delete({ where: { id } });
-    return { ok: true };
-  }
-
-  @Get('bank-accounts')
-  bankAccounts(): Promise<BankAccount[]> {
-    return this.prisma.bankAccount.findMany({ orderBy: { sortOrder: 'asc' } });
-  }
-
-  @Post('bank-accounts')
-  createBankAccount(@Body() dto: BankAccountDto): Promise<BankAccount> {
-    return this.prisma.bankAccount.create({ data: dto });
-  }
-
-  @Patch('bank-accounts/:id')
-  updateBankAccount(
-    @Param('id') id: string,
-    @Body() dto: UpdateBankAccountDto,
-  ): Promise<BankAccount> {
-    return this.prisma.bankAccount.update({ where: { id }, data: dto });
-  }
-
-  @Delete('bank-accounts/:id')
-  async removeBankAccount(@Param('id') id: string): Promise<OkResponse> {
-    await this.prisma.bankAccount.delete({ where: { id } });
     return { ok: true };
   }
 }

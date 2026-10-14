@@ -90,7 +90,7 @@ export class AdminController {
           where: { status: ModerationStatus.PENDING },
         }),
         this.prisma.gift.groupBy({
-          by: ['method'],
+          by: ['method', 'source', 'side'],
           _count: { _all: true },
           _sum: { amount: true },
         }),
@@ -165,13 +165,18 @@ export class AdminController {
       gifts: {
         count: gifts.reduce((n, g) => n + g._count._all, 0),
         totalAmount: gifts.reduce((n, g) => n + (g._sum.amount ?? 0n), 0n),
-        byMethod: gifts
-          .map((g) => ({
-            method: g.method,
-            count: g._count._all,
-            amount: g._sum.amount ?? 0n,
-          }))
-          .sort((a, b) => Number(b.amount - a.amount)),
+        byMethod: sumGifts(gifts, (g) => g.method).map(([method, v]) => ({
+          method,
+          ...v,
+        })),
+        bySource: sumGifts(gifts, (g) => g.source).map(([source, v]) => ({
+          source,
+          ...v,
+        })),
+        bySide: sumGifts(gifts, (g) => g.side).map(([side, v]) => ({
+          side,
+          ...v,
+        })),
       },
     };
   }
@@ -304,6 +309,21 @@ export class AdminController {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Re-groups gift sums by one key, largest amount first. */
+function sumGifts<
+  G extends { _count: { _all: number }; _sum: { amount: bigint | null } },
+  K,
+>(groups: G[], key: (g: G) => K) {
+  const out = new Map<K, { count: number; amount: bigint }>();
+  for (const g of groups) {
+    const v = out.get(key(g)) ?? { count: 0, amount: 0n };
+    v.count += g._count._all;
+    v.amount += g._sum.amount ?? 0n;
+    out.set(key(g), v);
+  }
+  return [...out.entries()].sort((a, b) => Number(b[1].amount - a[1].amount));
+}
+
 /**
  * Daily counts in Vietnam time, zero-filled: the last 30 days, extended back
  * to the first activity (at most 90 days) so the whole campaign is visible.

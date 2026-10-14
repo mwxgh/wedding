@@ -22,6 +22,7 @@ import {
 import { ModerationStatus, RsvpStatus } from '@repo/db';
 
 import { config } from '../config';
+import { PayosService } from '../payos/payos.service';
 import { PhotoService } from '../photos/photo.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GuestPhotoDto, GuestbookDto, RsvpDto } from './public.dto';
@@ -31,18 +32,18 @@ export class PublicController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly photos: PhotoService,
+    private readonly payos: PayosService,
   ) {}
 
   @Get('wedding')
   async wedding(): Promise<PublicWeddingData> {
-    const [info, events, bankAccounts] = await Promise.all([
+    const [info, events] = await Promise.all([
       this.prisma.weddingInfo.findUnique({ where: { id: 1 } }),
       this.prisma.event.findMany({
         orderBy: [{ sortOrder: 'asc' }, { startAt: 'asc' }],
       }),
-      this.prisma.bankAccount.findMany({ orderBy: { sortOrder: 'asc' } }),
     ]);
-    return { info, events, bankAccounts };
+    return { info, events, giftChannels: await this.payos.enabledSides() };
   }
 
   @Get('invitations/:code')

@@ -21,5 +21,16 @@ export const config = {
     secretKey: () => required('S3_SECRET_KEY'),
     bucket: process.env.S3_BUCKET ?? 'wedding',
   },
+  /** Encrypts secrets kept in the database (payOS keys) */
+  settingsSecret: () => required('SETTINGS_SECRET'),
+  payos: {
+    /** Public site, where payOS sends the guest back after checkout */
+    siteUrl: (process.env.PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(
+      /\/$/,
+      '',
+    ),
+    /** How long a gift QR stays valid */
+    ttlMinutes: Number(process.env.PAYOS_TTL_MINUTES ?? 15),
+  },
   uploadMaxBytes: Number(process.env.UPLOAD_MAX_MB ?? 15) * 1024 * 1024,
 };

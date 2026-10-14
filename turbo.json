@@ -9,6 +9,8 @@
     "S3_REGION",
     "S3_BUCKET",
     "UPLOAD_MAX_MB",
+    "PUBLIC_SITE_URL",
+    "PAYOS_TTL_MINUTES",
     "API_URL",
     "ADMIN_EMAIL",
     "ADMIN_PASSWORD"

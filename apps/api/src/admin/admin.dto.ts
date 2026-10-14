@@ -2,7 +2,6 @@ import { PartialType } from '@nestjs/mapped-types';
 
 import type {
   AlbumInput,
-  BankAccountInput,
   BudgetInput,
   EventInput,
   ExpenseInput,
@@ -149,21 +148,12 @@ export class GiftDto implements GiftInput {
   @EnumField(GiftMethod) method: GiftMethod;
   @IntField({ optional: true, min: 0 }) amount?: number;
   @StringField({ optional: true, maxLength: 191 }) description?: string;
+  @EnumField(Side, { optional: true, nullable: true }) side?: Side | null;
   @UuidField({ version: '7', optional: true }) invitationId?: string;
   @UuidField({ version: '7', optional: true }) eventId?: string;
   @DateStringField({ optional: true }) receivedAt?: string;
 }
 export class UpdateGiftDto extends PartialType(GiftDto) {}
-
-export class BankAccountDto implements BankAccountInput {
-  @EnumField(Side) side: Side;
-  @StringField({ pattern: /^\d{6,8}$/ }) bankBin: string;
-  @StringField({ pattern: /^\d{4,30}$/ }) accountNumber: string;
-  @StringField({ minLength: 1, maxLength: 100, toUpperCase: true })
-  accountName: string;
-  @IntField({ optional: true }) sortOrder?: number;
-}
-export class UpdateBankAccountDto extends PartialType(BankAccountDto) {}
 
 // ---------- planning ----------
 
