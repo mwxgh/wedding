@@ -1,13 +1,9 @@
-import type {
-  Album,
-  BankAccount,
-  Event,
-  Prisma,
-  WeddingInfo,
-} from '@repo/db/browser';
+import type { Album, Event, Prisma, WeddingInfo } from '@repo/db/browser';
 
 import type {
   GiftMethod,
+  GiftSource,
+  PayosStatus,
   PlanCategory,
   Relation,
   RsvpStatus,
@@ -64,6 +60,14 @@ export const adminEventInclude = {
 export const adminGiftInclude = {
   invitation: { select: { id: true, name: true } },
   event: { select: { id: true, name: true } },
+  payment: {
+    select: {
+      orderCode: true,
+      reference: true,
+      counterAccountName: true,
+      paidAt: true,
+    },
+  },
 } as const satisfies Prisma.GiftInclude;
 
 // ---------- Public ----------
@@ -71,7 +75,8 @@ export const adminGiftInclude = {
 export interface PublicWeddingData {
   info: WeddingInfo | null;
   events: Event[];
-  bankAccounts: BankAccount[];
+  /** Families that can receive an online gift (payOS configured). */
+  giftChannels: Side[];
 }
 export type PublicWedding = Json<PublicWeddingData>;
 
@@ -118,8 +123,6 @@ export type PublicGallery = Json<PublicGalleryData>;
 export type WeddingInfoJson = Json<WeddingInfo>;
 export type EventJson = Json<Event>;
 
-export type BankAccountJson = Json<BankAccount>;
-
 export type AdminGuestbookEntryData = Prisma.GuestbookEntryGetPayload<{
   include: typeof adminGuestbookInclude;
 }>;
@@ -149,6 +152,48 @@ export type AdminGiftData = Prisma.GiftGetPayload<{
   include: typeof adminGiftInclude;
 }>;
 export type AdminGift = Json<AdminGiftData>;
+
+// ---------- online gifts (payOS) ----------
+
+/** What the guest needs to pay: the QR and the account behind it. */
+export interface PublicGiftPaymentData {
+  id: string;
+  side: Side;
+  amount: number;
+  status: PayosStatus;
+  /** VietQR payload to render as a QR image */
+  qrCode: string;
+  checkoutUrl: string;
+  bin: string;
+  accountNumber: string;
+  accountName: string;
+  description: string;
+  expiresAt: Date;
+}
+export type PublicGiftPayment = Json<PublicGiftPaymentData>;
+
+export interface PublicGiftStatus {
+  status: PayosStatus;
+}
+
+/** A family's payOS channel as the admin sees it; keys only as hints. */
+export interface PayosChannel {
+  side: Side;
+  configured: boolean;
+  enabled: boolean;
+  clientId: string | null;
+  /** e.g. `••••abcd` */
+  apiKeyHint: string | null;
+  checksumKeyHint: string | null;
+  updatedAt: string | null;
+  /** Where payOS should send payment webhooks for this channel */
+  webhookPath: string;
+}
+
+export interface PayosSyncResult {
+  checked: number;
+  paid: number;
+}
 
 export interface DashboardEventStat {
   id: string;
@@ -196,6 +241,8 @@ export interface DashboardData {
     count: number;
     totalAmount: bigint;
     byMethod: { method: GiftMethod; count: number; amount: bigint }[];
+    bySource: { source: GiftSource; count: number; amount: bigint }[];
+    bySide: { side: Side | null; count: number; amount: bigint }[];
   };
 }
 export type Dashboard = Json<DashboardData>;

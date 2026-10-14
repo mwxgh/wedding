@@ -1,6 +1,8 @@
 export {
   GiftMethod,
+  GiftSource,
   ModerationStatus,
+  PayosStatus,
   PlanCategory,
   Relation,
   RsvpStatus,

@@ -131,17 +131,34 @@ export interface GiftInput {
   method: GiftMethod;
   amount?: number;
   description?: string;
+  /** Family that received it. */
+  side?: Side | null;
   invitationId?: string;
   eventId?: string;
   receivedAt?: string;
 }
 
-export interface BankAccountInput {
+/** A guest asks for a payOS QR to send a gift to one family. */
+export interface GiftPaymentInput {
   side: Side;
-  bankBin: string;
-  accountNumber: string;
-  accountName: string;
-  sortOrder?: number;
+  /** VND */
+  amount: number;
+  giverName: string;
+  message?: string;
+  invitationCode?: string;
+}
+
+/** Save a family's payOS keys. Blank keys keep the stored ones. */
+export interface PayosConfigInput {
+  clientId: string;
+  apiKey?: string;
+  checksumKey?: string;
+  enabled: boolean;
+}
+
+export interface PayosWebhookInput {
+  /** Public URL payOS should call, e.g. https://api.example.com/payos/webhook/GROOM */
+  url: string;
 }
 
 // ---------- planning ----------
