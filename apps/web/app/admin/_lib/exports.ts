@@ -12,6 +12,7 @@ import { type ExcelColumn, excelSheet } from '@repo/ui/lib/excel';
 
 import {
   GIFT_METHOD_LABEL,
+  GIFT_SOURCE_LABEL,
   MODERATION_LABEL,
   PLAN_CATEGORY_LABEL,
   RELATION_LABEL,
@@ -248,6 +249,18 @@ export const giftSheets = (gifts: AdminGift[]) => [
         width: 16,
       },
       { header: 'Mô tả', value: (g) => g.description, width: 30 },
+      {
+        header: 'Bên nhận',
+        value: (g) => (g.side ? SIDE_LABEL[g.side] : null),
+        width: 10,
+      },
+      {
+        header: 'Nguồn',
+        value: (g) => GIFT_SOURCE_LABEL[g.source],
+        width: 10,
+      },
+      { header: 'Mã giao dịch', value: (g) => g.payment?.reference, width: 18 },
+      { header: 'Lời chúc', value: (g) => g.message, width: 40 },
     ],
   }),
 ];

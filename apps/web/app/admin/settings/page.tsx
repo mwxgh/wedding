@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-import { CalendarHeartIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CalendarHeartIcon } from 'lucide-react';
 
 import {
   type AdminEvent,
-  type BankAccountInput,
-  type BankAccountJson,
   type EventTimingInput,
   type EventVenueInput,
   type ScheduleInput,
-  type Side,
   type WeddingInfoInput,
   type WeddingInfoJson,
   vnDay,
@@ -25,19 +22,7 @@ import {
   CardTitle,
 } from '@repo/ui/components/card';
 import { Input } from '@repo/ui/components/input';
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from '@repo/ui/components/native-select';
 import { toast } from '@repo/ui/components/sonner';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@repo/ui/components/table';
 import { Textarea } from '@repo/ui/components/textarea';
 
 import { MapDialog } from '../../_components/MapDialog';
@@ -47,6 +32,7 @@ import {
   EventTimingFields,
   formatWeddingDay,
 } from '../_components/event-timing';
+import { PayosSettings } from '../_components/payos-settings';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { PageHeader } from '../_lib/ui';
 
@@ -58,25 +44,14 @@ const emptyInfo = {
   story: '',
 };
 
-const emptyBank: BankAccountInput = {
-  side: 'GROOM',
-  bankBin: '',
-  accountNumber: '',
-  accountName: '',
-};
-
 export default function SettingsPage() {
   const { api } = useAuth();
   const { data: wedding } = useAdminData<WeddingInfoJson | null>(
     '/admin/wedding',
   );
-  const { data: banks, reload: reloadBanks } = useAdminData<BankAccountJson[]>(
-    '/admin/bank-accounts',
-  );
   const { data: events, reload: reloadEvents } =
     useAdminData<AdminEvent[]>('/admin/events');
   const [info, setInfo] = useState(emptyInfo);
-  const [bank, setBank] = useState(emptyBank);
   // the one place dates are set: wedding day + each event's time
   const [day, setDay] = useState('');
   const [timings, setTimings] = useState<
@@ -159,24 +134,6 @@ export default function SettingsPage() {
     } catch (err) {
       toast.error((err as Error).message);
     }
-  }
-
-  async function addBank(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await api('/admin/bank-accounts', { body: bank });
-      setBank(emptyBank);
-      toast.success('Đã thêm tài khoản');
-      await reloadBanks();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-  }
-
-  async function removeBank(id: string) {
-    if (!confirm('Xoá tài khoản này?')) return;
-    await api(`/admin/bank-accounts/${id}`, { method: 'DELETE' });
-    await reloadBanks();
   }
 
   const setI = (patch: Partial<typeof info>) =>
@@ -340,106 +297,7 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-serif text-xl">
-            Tài khoản nhận mừng cưới (VietQR)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bên</TableHead>
-                <TableHead>Mã BIN</TableHead>
-                <TableHead>Số tài khoản</TableHead>
-                <TableHead>Chủ tài khoản</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {banks?.map((b) => (
-                <TableRow key={b.id}>
-                  <TableCell>{SIDE_LABEL[b.side]}</TableCell>
-                  <TableCell>{b.bankBin}</TableCell>
-                  <TableCell>{b.accountNumber}</TableCell>
-                  <TableCell>{b.accountName}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="destructive"
-                      size="icon-sm"
-                      title="Xoá"
-                      onClick={() => removeBank(b.id)}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {banks && !banks.length && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
-                    Chưa có tài khoản.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          <form onSubmit={addBank} className="flex flex-col gap-4">
-            <FieldRow>
-              <FormField label="Bên">
-                <NativeSelect
-                  className="w-full"
-                  value={bank.side}
-                  onChange={(e) =>
-                    setBank({ ...bank, side: e.target.value as Side })
-                  }
-                >
-                  <NativeSelectOption value="GROOM">
-                    Nhà trai
-                  </NativeSelectOption>
-                  <NativeSelectOption value="BRIDE">Nhà gái</NativeSelectOption>
-                </NativeSelect>
-              </FormField>
-              <FormField label="Mã BIN ngân hàng (vd: 970436 = VCB)">
-                <Input
-                  value={bank.bankBin}
-                  onChange={(e) =>
-                    setBank({ ...bank, bankBin: e.target.value })
-                  }
-                  required
-                />
-              </FormField>
-              <FormField label="Số tài khoản">
-                <Input
-                  value={bank.accountNumber}
-                  onChange={(e) =>
-                    setBank({ ...bank, accountNumber: e.target.value })
-                  }
-                  required
-                />
-              </FormField>
-              <FormField label="Chủ tài khoản (không dấu)">
-                <Input
-                  value={bank.accountName}
-                  onChange={(e) =>
-                    setBank({
-                      ...bank,
-                      accountName: e.target.value.toUpperCase(),
-                    })
-                  }
-                  required
-                />
-              </FormField>
-            </FieldRow>
-            <Button type="submit" variant="outline" className="self-start">
-              <PlusIcon data-icon="inline-start" />
-              Thêm tài khoản
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <PayosSettings />
     </>
   );
 }

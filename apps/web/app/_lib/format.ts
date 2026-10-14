@@ -1,5 +1,6 @@
 import type {
   GiftMethod,
+  GiftSource,
   ModerationStatus,
   PlanCategory,
   Relation,
@@ -89,12 +90,10 @@ export const RELATION_LABEL: Record<Relation, string> = {
   OTHER: 'Khác',
 };
 
-export const vietQrUrl = (
-  bankBin: string,
-  accountNumber: string,
-  accountName: string,
-) =>
-  `https://img.vietqr.io/image/${bankBin}-${accountNumber}-compact2.png?accountName=${encodeURIComponent(accountName)}`;
+export const GIFT_SOURCE_LABEL: Record<GiftSource, string> = {
+  MANUAL: 'Ghi tay',
+  PAYOS: 'payOS',
+};
 
 export const PLAN_CATEGORY_LABEL: Record<PlanCategory, string> = {
   VENUE: 'Địa điểm',

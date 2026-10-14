@@ -11,10 +11,11 @@ import { LoveJourney } from '@repo/ui/components/love-journey';
 import { SoundToggle } from '@repo/ui/components/sound-toggle';
 
 import { serverGet } from '../_lib/api';
-import { SIDE_LABEL, formatDate, vietQrUrl } from '../_lib/format';
+import { SIDE_LABEL, formatDate } from '../_lib/format';
 import { Countdown } from './Countdown';
 import { EventCard } from './EventCard';
 import { Gallery } from './Gallery';
+import { GiftBox } from './GiftBox';
 import { Guestbook } from './Guestbook';
 import { Hero } from './Hero';
 import { PhotoUpload } from './PhotoUpload';
@@ -168,28 +169,16 @@ export async function WeddingPage({
         </Reveal>
       </Section>
 
-      {wedding.bankAccounts.length > 0 && (
+      {wedding.giftChannels.length > 0 && (
         <Section>
           <Reveal>
             <SectionTitle script="Mừng cưới" title="Hộp mừng cưới" />
-            <div className="grid gap-5 sm:grid-cols-2">
-              {wedding.bankAccounts.map((b) => (
-                <Card key={b.id} className="text-center">
-                  <CardContent>
-                    <strong>{SIDE_LABEL[b.side]}</strong>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- external VietQR image */}
-                    <img
-                      src={vietQrUrl(b.bankBin, b.accountNumber, b.accountName)}
-                      alt={`QR ${b.accountName}`}
-                      loading="lazy"
-                      className="mx-auto my-3 w-56 rounded-xl"
-                    />
-                    <p>{b.accountName}</p>
-                    <p className="text-muted-foreground">{b.accountNumber}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <GiftBox
+              channels={wedding.giftChannels}
+              defaultSide={invitation?.side}
+              defaultName={invitation?.name}
+              invitationCode={invitation?.code}
+            />
           </Reveal>
         </Section>
       )}
