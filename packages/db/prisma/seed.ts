@@ -81,23 +81,6 @@ async function main() {
     ],
   });
 
-  await prisma.bankAccount.createMany({
-    data: [
-      {
-        side: Side.BRIDE,
-        bankBin: '970436',
-        accountNumber: '0123456789',
-        accountName: 'NGUYEN THU HA',
-      },
-      {
-        side: Side.GROOM,
-        bankBin: '970407',
-        accountNumber: '9876543210',
-        accountName: 'LE MINH TUAN',
-      },
-    ],
-  });
-
   const invitation = await prisma.invitation.create({
     data: {
       code: 'demo123456',

@@ -35,6 +35,19 @@ enum GiftMethod {
   OTHER
 }
 
+/// Where a gift record came from
+enum GiftSource {
+  MANUAL
+  PAYOS
+}
+
+enum PayosStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
 enum Relation {
   FAMILY
   RELATIVE
@@ -113,6 +126,7 @@ model Invitation {
   guestbook GuestbookEntry[]
   gifts     Gift[]
   photos    Photo[]
+  payments  PayosPayment[]
 
   @@index([side])
 }
@@ -204,21 +218,62 @@ model Gift {
   method       GiftMethod
   amount       BigInt?
   description  String?
-  receivedAt   DateTime    @default(now())
-  invitation   Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
-  event        Event?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  /// Which family received it (null for old manual records)
+  side         Side?
+  source       GiftSource    @default(MANUAL)
+  /// Wish left by the guest with an online gift
+  message      String?       @db.Text
+  receivedAt   DateTime      @default(now())
+  invitation   Invitation?   @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  event        Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  payment      PayosPayment?
 
   @@index([invitationId])
   @@index([eventId])
 }
 
-model BankAccount {
-  id            String @id @default(uuid(7)) @db.Char(36)
-  side          Side
-  bankBin       String @db.VarChar(8)
-  accountNumber String
-  accountName   String
-  sortOrder     Int    @default(0)
+/// payOS merchant credentials, one channel (bank account) per family.
+/// Keys are AES-256-GCM encrypted with SETTINGS_SECRET; never sent to clients.
+model PayosConfig {
+  side           Side     @id
+  clientId       String
+  apiKeyEnc      String   @db.Text
+  checksumKeyEnc String   @db.Text
+  enabled        Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+}
+
+/// A payOS payment link created for an online gift; becomes a Gift once paid
+model PayosPayment {
+  id                 String      @id @default(uuid(7)) @db.Char(36)
+  orderCode          BigInt      @unique
+  /// payOS channel (one per family)
+  side               Side
+  amount             BigInt
+  giverName          String
+  message            String?     @db.Text
+  invitationId       String?     @db.Char(36)
+  status             PayosStatus @default(PENDING)
+  paymentLinkId      String      @unique
+  qrCode             String      @db.Text
+  checkoutUrl        String      @db.Text
+  bin                String      @db.VarChar(8)
+  accountNumber      String
+  accountName        String
+  description        String
+  expiresAt          DateTime
+  /// Last time the status was asked from payOS (throttles polling)
+  checkedAt          DateTime?
+  paidAt             DateTime?
+  reference          String?
+  counterAccountName String?
+  giftId             String?     @unique @db.Char(36)
+  createdAt          DateTime    @default(now())
+  invitation         Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  gift               Gift?       @relation(fields: [giftId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([invitationId])
 }
 
 model AdminUser {
