@@ -8,53 +8,91 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* shadcn tokens, mapped to the wedding palette */
+/* shadcn tokens — "Sage & Champagne": deep sage primary, champagne accent,
+   warm ivory surfaces. Text pairs checked >= 4.5:1 on background and card. */
 :root {
   --radius: 0.875rem;
-  --background: #fbf7f2;
-  --foreground: #3b2f2a;
+  --background: #f8f6f1;
+  --foreground: #1e2a24;
   --card: #ffffff;
-  --card-foreground: #3b2f2a;
+  --card-foreground: #1e2a24;
   --popover: #ffffff;
-  --popover-foreground: #3b2f2a;
-  --primary: #b5838d;
+  --popover-foreground: #1e2a24;
+  --primary: #3f6b55;
   --primary-foreground: #ffffff;
-  --secondary: #f4ece3;
-  --secondary-foreground: #8e5b66;
-  --muted: #f4ece3;
-  --muted-foreground: #7d6b62;
-  --accent: #f4ece3;
-  --accent-foreground: #8e5b66;
-  --destructive: #b0473f;
-  --border: #e8dcd0;
-  --input: #e8dcd0;
-  --ring: #b5838d;
-  /* Chart series: brand hues stepped for data (validated: chroma, CVD
-     separation >= 15 dE, lightness band). Amber is < 3:1 on white, so charts
-     always ship legends, direct labels and a table view. */
-  --chart-1: #c2456a; /* rose */
-  --chart-2: #c98a1c; /* amber */
-  --chart-3: #6f52a8; /* plum */
-  --chart-4: #ddd4cd; /* neutral: "not yet" */
-  --chart-5: #efe8e3; /* track / de-emphasis */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #3b2f2a;
-  --sidebar-primary: #b5838d;
+  --secondary: #eaf0ea;
+  --secondary-foreground: #2f5242;
+  --muted: #f1eee7;
+  --muted-foreground: #5b655f;
+  --accent: #f4ecdc;
+  --accent-foreground: #6b4f1d;
+  --destructive: #b3403a;
+  --border: #e5dfd4;
+  --input: #dbd4c7;
+  --ring: #3f6b55;
+  /* Chart series: sage / amber / plum differ in lightness as well as hue so
+     they stay apart under CVD; charts still ship legends and direct labels. */
+  --chart-1: #3f6b55; /* sage */
+  --chart-2: #d39b3a; /* amber */
+  --chart-3: #8a5fa8; /* plum */
+  --chart-4: #d8d2c8; /* neutral: "not yet" */
+  --chart-5: #ece8e0; /* track / de-emphasis */
+  --sidebar: #fdfcf9;
+  --sidebar-foreground: #1e2a24;
+  --sidebar-primary: #3f6b55;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4ece3;
-  --sidebar-accent-foreground: #8e5b66;
-  --sidebar-border: #e8dcd0;
-  --sidebar-ring: #b5838d;
+  --sidebar-accent: #eaf0ea;
+  --sidebar-accent-foreground: #2f5242;
+  --sidebar-border: #e5dfd4;
+  --sidebar-ring: #3f6b55;
 
-  /* Wedding extras */
-  --rose-deep: #8e5b66;
-  --gold: #c9a96e;
+  /* Wedding extras (names kept for compatibility):
+     rose-deep = deep brand tone for display text, gold = champagne accent. */
+  --rose-deep: #2f5242;
+  --gold: #b8945a;
+  /* Gold that stays legible on the primary colour */
+  --gold-light: #ecdcb6;
+}
+
+/* Wedding invitation theme — đỏ đô (burgundy) + ngà (ivory) + vàng kim.
+   Keyed on :root so portalled dialogs and toasts pick it up too; active while
+   an element with data-theme="invite" is mounted (the guest pages). */
+:root:has([data-theme='invite']) {
+  --background: #f4ece2;
+  --foreground: #3a1218;
+  --card: #fbf6ef;
+  --card-foreground: #3a1218;
+  --popover: #fbf6ef;
+  --popover-foreground: #3a1218;
+  --primary: #6b1622;
+  --primary-foreground: #fbf3e8;
+  --secondary: #f1e3d6;
+  --secondary-foreground: #5a1019;
+  --muted: #eee3d6;
+  --muted-foreground: #6a4e46;
+  --accent: #f3e4c9;
+  --accent-foreground: #6b4a14;
+  --destructive: #b3261e;
+  --border: #e2d2c0;
+  --input: #d6c2ab;
+  --ring: #6b1622;
+  --rose-deep: #4f0d16;
+  --gold: #a27532;
+  --gold-light: #ead09a;
+}
+
+/* Thin high-contrast serif for the invitation (falls back to Playfair) */
+[data-theme='invite'] {
+  --font-playfair: var(--font-cormorant);
 }
 
 @theme inline {
   --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-playfair), Georgia, serif;
   --font-script: var(--font-dancing), cursive;
+  /* Han characters (囍) — web font first, then common system CJK serifs */
+  --font-han:
+    var(--font-noto-han), 'Songti TC', 'Noto Serif CJK TC', 'SimSun', serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -89,12 +127,17 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-rose-deep: var(--rose-deep);
   --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --shadow-soft: 0 10px 30px rgb(59 47 42 / 0.08);
+  --shadow-soft:
+    0 1px 2px rgb(30 42 36 / 0.04), 0 8px 24px -8px rgb(30 42 36 / 0.1);
+  --animate-float-up: float-up 16s linear infinite;
+  --shadow-lift:
+    0 2px 4px rgb(30 42 36 / 0.04), 0 20px 40px -12px rgb(30 42 36 / 0.18);
 }
 
 @layer base {
@@ -103,5 +146,40 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  ::selection {
+    @apply bg-primary/15 text-foreground;
+  }
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  select {
+    cursor: pointer;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+}
+
+/* Hearts drifting up the invitation backdrop */
+@keyframes float-up {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate3d(18px, -55vh, 0) rotate(20deg);
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(-12px, -110vh, 0) rotate(-10deg);
+    opacity: 0;
   }
 }
