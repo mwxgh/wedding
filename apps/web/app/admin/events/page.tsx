@@ -2,7 +2,17 @@
 
 import { useState } from 'react';
 
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import {
+  CalendarClockIcon,
+  CalendarHeartIcon,
+  MapPinIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+  UsersIcon,
+  UtensilsIcon,
+} from 'lucide-react';
 
 import type {
   AdminEvent,
@@ -154,20 +164,41 @@ export default function EventsPage() {
       />
       <ErrorAlert error={error} />
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {data?.map((ev) => (
           <Card key={ev.id}>
             <CardHeader>
-              <CardTitle className="font-serif text-xl">{ev.name}</CardTitle>
-              <CardDescription>
-                {SIDE_LABEL[ev.side]} · {offsetLabel(ev.dayOffset)},{' '}
-                {formatDateTime(ev.startAt)} · {ev.venueName} — {ev.address}
+              <CardTitle className="flex flex-wrap items-center gap-2">
+                <span className="font-serif text-2xl text-rose-deep">
+                  {ev.name}
+                </span>
+                <Badge variant="secondary">{SIDE_LABEL[ev.side]}</Badge>
+              </CardTitle>
+              <CardDescription
+                className={`mt-1 flex flex-col gap-1.5 sm:flex-row sm:flex-wrap
+                sm:gap-x-5`}
+              >
+                <span className="inline-flex items-center gap-1.5 tabular-nums">
+                  <CalendarClockIcon aria-hidden className="size-4 shrink-0" />
+                  {offsetLabel(ev.dayOffset)}, {formatDateTime(ev.startAt)}
+                </span>
+                <span className="inline-flex items-start gap-1.5">
+                  <MapPinIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+                  <span>
+                    <span className="font-medium text-foreground">
+                      {ev.venueName}
+                    </span>{' '}
+                    — {ev.address}
+                  </span>
+                </span>
               </CardDescription>
               <CardAction className="flex gap-1">
                 <Button
                   variant="ghost"
-                  size="icon-sm"
+                  size="icon"
+                  className="max-sm:size-11"
                   title="Sửa"
+                  aria-label={`Sửa sự kiện ${ev.name}`}
                   onClick={() => {
                     setFormError(null);
                     setForm({
@@ -190,55 +221,121 @@ export default function EventsPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  size="icon-sm"
+                  size="icon"
+                  className="max-sm:size-11"
                   title="Xoá"
+                  aria-label={`Xoá sự kiện ${ev.name}`}
                   onClick={() => removeEvent(ev)}
                 >
                   <Trash2Icon />
                 </Button>
               </CardAction>
             </CardHeader>
-            <CardContent>
-              <h4 className="mb-2 font-semibold">
-                Bàn tiệc ({ev.tables.length})
-              </h4>
+            <CardContent className="border-t pt-5">
+              <h3
+                className={`mb-3 flex items-center gap-2 text-sm font-semibold
+                tracking-wide text-muted-foreground uppercase`}
+              >
+                <UtensilsIcon aria-hidden className="size-4" />
+                Bàn tiệc
+                <span
+                  className={`rounded-full bg-muted px-2 py-0.5 text-xs
+                  text-foreground tabular-nums`}
+                >
+                  {ev.tables.length}
+                </span>
+              </h3>
+              {!ev.tables.length && (
+                <p
+                  className={`rounded-xl border border-dashed p-4 text-center
+                  text-sm text-muted-foreground`}
+                >
+                  Chưa có bàn nào — thêm bàn bên dưới.
+                </p>
+              )}
               <div
-                className={`grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))]
-                gap-2.5`}
+                className={`grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))]
+                gap-3`}
               >
                 {ev.tables.map((t) => {
                   const seated = t.seats.reduce(
                     (n, s) => n + s.attendingCount,
                     0,
                   );
+                  const over = seated > t.capacity;
+                  const fill = t.capacity
+                    ? Math.min(100, (seated / t.capacity) * 100)
+                    : 0;
                   return (
-                    <Card key={t.id} size="sm">
+                    <Card
+                      key={t.id}
+                      size="sm"
+                      className="bg-muted/30 shadow-none"
+                    >
                       <CardHeader>
                         <CardTitle>{t.name}</CardTitle>
                         <CardAction>
                           <Badge
-                            variant={
-                              seated > t.capacity ? 'destructive' : 'secondary'
-                            }
+                            variant={over ? 'destructive' : 'secondary'}
+                            className="tabular-nums"
                           >
+                            {over ? (
+                              <TriangleAlertIcon aria-hidden />
+                            ) : (
+                              <UsersIcon aria-hidden />
+                            )}
                             {seated}/{t.capacity}
+                            {over && (
+                              <span className="sr-only"> — quá chỗ</span>
+                            )}
                           </Badge>
                         </CardAction>
                       </CardHeader>
-                      <CardContent className="flex flex-col gap-2">
-                        <ul className="list-disc pl-4 text-sm">
-                          {t.seats.map((s) => (
-                            <li key={s.invitationId}>
-                              {s.invitation.name} ({s.attendingCount})
-                            </li>
-                          ))}
-                        </ul>
+                      <CardContent className="flex flex-1 flex-col gap-3">
+                        <div
+                          aria-hidden
+                          className={`h-1.5 overflow-hidden rounded-full
+                          bg-muted`}
+                        >
+                          <div
+                            className={`h-full rounded-full transition-[width]
+                            ${over ? 'bg-destructive' : 'bg-primary'}`}
+                            style={{ width: `${fill}%` }}
+                          />
+                        </div>
+                        {t.seats.length ? (
+                          <ul className="flex flex-col gap-1 text-sm">
+                            {t.seats.map((s) => (
+                              <li
+                                key={s.invitationId}
+                                className="flex justify-between gap-2"
+                              >
+                                <span className="truncate">
+                                  {s.invitation.name}
+                                </span>
+                                <span
+                                  className={`text-muted-foreground
+                                    tabular-nums`}
+                                >
+                                  {s.attendingCount}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Chưa xếp khách.
+                          </p>
+                        )}
                         <Button
-                          variant="destructive"
+                          variant="ghost"
                           size="sm"
-                          className="self-start"
+                          className={`mt-auto self-start text-destructive
+                          hover:bg-destructive/10 hover:text-destructive
+                          max-sm:h-11`}
                           onClick={() => removeTable(t.id)}
                         >
+                          <Trash2Icon data-icon="inline-start" aria-hidden />
                           Xoá bàn
                         </Button>
                       </CardContent>
@@ -246,16 +343,24 @@ export default function EventsPage() {
                   );
                 })}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div
+                className={`mt-4 flex flex-col gap-2 rounded-xl bg-muted/40 p-3
+                sm:flex-row sm:items-center`}
+              >
                 <Input
-                  className="max-w-56"
+                  className="sm:max-w-64"
+                  aria-label={`Tên bàn mới cho ${ev.name}`}
                   placeholder="Tên bàn (vd: Bàn 4)"
                   value={tableName[ev.id] ?? ''}
                   onChange={(e) =>
                     setTableName((t) => ({ ...t, [ev.id]: e.target.value }))
                   }
                 />
-                <Button variant="outline" onClick={() => addTable(ev.id)}>
+                <Button
+                  variant="outline"
+                  className="max-sm:h-11"
+                  onClick={() => addTable(ev.id)}
+                >
                   <PlusIcon data-icon="inline-start" />
                   Thêm bàn
                 </Button>
@@ -267,13 +372,28 @@ export default function EventsPage() {
           </Card>
         ))}
         {data && !data.length && (
-          <p className="text-muted-foreground">Chưa có sự kiện nào.</p>
+          <div
+            className={`flex flex-col items-center gap-2 rounded-2xl border
+            border-dashed bg-card px-6 py-14 text-center text-muted-foreground`}
+          >
+            <span
+              className={`grid size-12 place-items-center rounded-full
+              bg-secondary text-secondary-foreground`}
+            >
+              <CalendarHeartIcon aria-hidden className="size-5" />
+            </span>
+            <p className="font-medium text-foreground">Chưa có sự kiện nào</p>
+            <p className="text-sm">
+              Thêm lễ vu quy, lễ thành hôn hay tiệc cưới để khách RSVP.
+            </p>
+          </div>
         )}
       </div>
 
       <FormDialog
         open={!!form}
         title={form?.id ? 'Sửa sự kiện' : 'Thêm sự kiện'}
+        description="Giờ sự kiện tính theo ngày cưới; đổi ngày cưới trong Cài đặt thì sự kiện tự dời theo."
         error={formError}
         onClose={() => setForm(null)}
         onSubmit={save}
@@ -314,10 +434,6 @@ export default function EventsPage() {
               onChange={(timing) => set({ timing })}
               weddingDay={weddingDay}
             />
-            <p className="-mt-2 text-xs text-muted-foreground">
-              Giờ sự kiện tính theo ngày cưới; đổi ngày cưới trong Cài đặt thì
-              sự kiện tự dời theo.
-            </p>
             <FormField label="Địa điểm">
               <Input
                 value={form.venueName}

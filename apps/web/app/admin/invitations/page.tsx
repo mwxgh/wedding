@@ -4,9 +4,13 @@ import { useMemo, useState } from 'react';
 
 import {
   CopyIcon,
+  EyeIcon,
+  MailOpenIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   Trash2Icon,
+  UsersIcon,
   XIcon,
 } from 'lucide-react';
 
@@ -17,6 +21,7 @@ import type {
   Relation,
   Side,
 } from '@repo/types';
+import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
@@ -196,14 +201,28 @@ export default function InvitationsPage() {
       />
       <ErrorAlert error={error} />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <Input
-          className="max-w-64"
-          placeholder="Tìm theo tên…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div
+        className={`mb-4 flex flex-col gap-3 rounded-2xl border bg-card p-3
+          shadow-soft sm:flex-row sm:items-center`}
+      >
+        <div className="relative w-full sm:max-w-72">
+          <SearchIcon
+            aria-hidden
+            className={`pointer-events-none absolute top-1/2 left-3 size-4
+              -translate-y-1/2 text-muted-foreground`}
+          />
+          <Input
+            type="search"
+            aria-label="Tìm theo tên"
+            className="pl-9"
+            placeholder="Tìm theo tên…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
         <NativeSelect
+          aria-label="Lọc theo bên"
+          className="w-full sm:w-auto"
           value={filter}
           onChange={(e) => setFilter(e.target.value as Side | '')}
         >
@@ -212,9 +231,22 @@ export default function InvitationsPage() {
           <NativeSelectOption value="BRIDE">Nhà gái</NativeSelectOption>
           <NativeSelectOption value="BOTH">Hai họ</NativeSelectOption>
         </NativeSelect>
-        <span className="text-muted-foreground">
-          {list.length} thiệp · tối đa {totalGuests} khách
-        </span>
+        <p
+          className={`flex items-center gap-2 text-sm text-muted-foreground
+            tabular-nums sm:ml-auto`}
+        >
+          <MailOpenIcon aria-hidden className="size-4" />
+          <span>
+            <strong className="font-semibold text-foreground">
+              {list.length}
+            </strong>{' '}
+            thiệp · tối đa{' '}
+            <strong className="font-semibold text-foreground">
+              {totalGuests}
+            </strong>{' '}
+            khách
+          </span>
+        </p>
       </div>
 
       <Card className="py-0">
@@ -223,27 +255,49 @@ export default function InvitationsPage() {
             <TableRow>
               <TableHead>Tên</TableHead>
               <TableHead>Bên</TableHead>
-              <TableHead>Khách</TableHead>
+              <TableHead className="text-right">Khách</TableHead>
               <TableHead>RSVP</TableHead>
               <TableHead>Đã mở</TableHead>
-              <TableHead />
+              <TableHead>
+                <span className="sr-only">Thao tác</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.map((inv) => (
               <TableRow key={inv.id}>
-                <TableCell className="align-top">
-                  <p className="font-medium">{inv.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {RELATION_LABEL[inv.relation]}
-                    {inv.guests.length > 0 &&
-                      ` · ${inv.guests.map((g) => g.name).join(', ')}`}
-                  </p>
+                <TableCell className="max-w-80 align-top whitespace-normal">
+                  <div className="flex items-start gap-3">
+                    <span
+                      aria-hidden
+                      className={`grid size-9 shrink-0 place-items-center
+                      rounded-full bg-secondary font-serif text-sm font-semibold
+                      text-secondary-foreground`}
+                    >
+                      {inv.name.trim().charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">{inv.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {RELATION_LABEL[inv.relation]}
+                        {inv.guests.length > 0 &&
+                          ` · ${inv.guests.map((g) => g.name).join(', ')}`}
+                      </p>
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell className="align-top">
-                  {SIDE_LABEL[inv.side]}
+                  <Badge variant="outline">{SIDE_LABEL[inv.side]}</Badge>
                 </TableCell>
-                <TableCell className="align-top">{inv.maxGuests}</TableCell>
+                <TableCell className="text-right align-top tabular-nums">
+                  <span className="inline-flex items-center gap-1.5">
+                    <UsersIcon
+                      aria-hidden
+                      className="size-3.5 text-muted-foreground"
+                    />
+                    {inv.maxGuests}
+                  </span>
+                </TableCell>
                 <TableCell className="align-top">
                   <div className="flex flex-col gap-1">
                     {inv.events.map((ev) => (
@@ -254,7 +308,7 @@ export default function InvitationsPage() {
                         <StatusBadge status={ev.status}>
                           {RSVP_LABEL[ev.status]}
                         </StatusBadge>
-                        <span className="text-xs">
+                        <span className="text-xs text-muted-foreground">
                           {ev.event.name}
                           {ev.status === 'ATTENDING' &&
                             ` · ${ev.attendingCount} người`}
@@ -265,30 +319,47 @@ export default function InvitationsPage() {
                   </div>
                 </TableCell>
                 <TableCell className="align-top text-xs">
-                  {inv.openedAt ? formatDateTime(inv.openedAt) : '—'}
+                  {inv.openedAt ? (
+                    <span
+                      className={
+                        'inline-flex items-center gap-1.5 tabular-nums'
+                      }
+                    >
+                      <EyeIcon aria-hidden className="size-3.5 text-primary" />
+                      {formatDateTime(inv.openedAt)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Chưa mở</span>
+                  )}
                 </TableCell>
                 <TableCell className="align-top">
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
                       title="Copy link"
+                      aria-label={`Copy link thiệp của ${inv.name}`}
                       onClick={() => copyLink(inv)}
                     >
                       <CopyIcon />
                     </Button>
                     <Button
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
                       title="Sửa"
+                      aria-label={`Sửa thiệp của ${inv.name}`}
                       onClick={() => open(toForm(inv))}
                     >
                       <PencilIcon />
                     </Button>
                     <Button
                       variant="destructive"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
                       title="Xoá"
+                      aria-label={`Xoá thiệp của ${inv.name}`}
                       onClick={() => remove(inv)}
                     >
                       <Trash2Icon />
@@ -299,8 +370,24 @@ export default function InvitationsPage() {
             ))}
             {data && !list.length && (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground">
-                  Chưa có thiệp mời nào.
+                <TableCell colSpan={6} className="py-14">
+                  <div
+                    className={`flex flex-col items-center gap-2 text-center
+                    text-muted-foreground`}
+                  >
+                    <span
+                      className={`grid size-12 place-items-center rounded-full
+                      bg-secondary text-secondary-foreground`}
+                    >
+                      <MailOpenIcon aria-hidden className="size-5" />
+                    </span>
+                    <p className="font-medium text-foreground">
+                      Chưa có thiệp mời nào
+                    </p>
+                    <p className="text-sm">
+                      Bấm “Tạo thiệp mời” để gửi lời mời đầu tiên.
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -311,6 +398,7 @@ export default function InvitationsPage() {
       <FormDialog
         open={!!form}
         title={form?.id ? 'Sửa thiệp mời' : 'Tạo thiệp mời'}
+        description="Mỗi thiệp có một đường link riêng để khách xem và RSVP."
         error={formError}
         onClose={() => setForm(null)}
         onSubmit={save}
@@ -372,9 +460,14 @@ export default function InvitationsPage() {
             <FormField label="Thành viên (tuỳ chọn)">
               <div className="flex flex-col gap-2">
                 {form.guests.map((g, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div
+                    key={i}
+                    className={`flex items-center gap-2 rounded-xl border
+                    bg-muted/30 p-2`}
+                  >
                     <Input
                       value={g.name}
+                      aria-label={`Tên thành viên ${i + 1}`}
                       placeholder="Tên"
                       onChange={(e) =>
                         set({
@@ -404,7 +497,9 @@ export default function InvitationsPage() {
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
+                      aria-label={`Bỏ thành viên ${i + 1}`}
                       onClick={() =>
                         set({ guests: form.guests.filter((_, j) => j !== i) })
                       }
@@ -434,8 +529,17 @@ export default function InvitationsPage() {
                 {events?.map((ev) => {
                   const checked = form.eventIds.includes(ev.id);
                   return (
-                    <div key={ev.id} className="flex items-center gap-2">
-                      <label className="flex flex-1 items-center gap-2 text-sm">
+                    <div
+                      key={ev.id}
+                      className={`flex flex-wrap items-center gap-2 rounded-xl
+                      border p-2.5 transition-colors
+                      has-data-checked:border-primary/40
+                      has-data-checked:bg-secondary/50`}
+                    >
+                      <label
+                        className={`flex min-h-8 flex-1 items-center gap-2
+                        text-sm font-medium`}
+                      >
                         <Checkbox
                           checked={checked}
                           onCheckedChange={(on) =>
@@ -450,6 +554,7 @@ export default function InvitationsPage() {
                       </label>
                       {checked && ev.tables.length > 0 && (
                         <NativeSelect
+                          aria-label={`Bàn tại ${ev.name}`}
                           value={form.tables[ev.id] ?? ''}
                           onChange={(e) =>
                             set({

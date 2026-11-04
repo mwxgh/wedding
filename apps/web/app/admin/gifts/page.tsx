@@ -5,9 +5,12 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 
 import {
+  GiftIcon,
+  LockIcon,
   PencilIcon,
   PlusIcon,
   RefreshCwIcon,
+  SlidersHorizontalIcon,
   Trash2Icon,
   ZapIcon,
 } from 'lucide-react';
@@ -187,7 +190,7 @@ export default function GiftsPage() {
       items: gifts.filter((g) => g.source === 'PAYOS'),
       hint: (
         <span className="inline-flex items-center gap-1">
-          <ZapIcon className="size-3" /> tự đồng bộ
+          <ZapIcon aria-hidden className="size-3" /> tự đồng bộ
         </span>
       ),
     },
@@ -215,7 +218,10 @@ export default function GiftsPage() {
               >
                 <RefreshCwIcon
                   data-icon="inline-start"
-                  className={syncing ? 'animate-spin' : undefined}
+                  aria-hidden
+                  className={
+                    syncing ? 'animate-spin motion-reduce:animate-none' : ''
+                  }
                 />
                 Đồng bộ payOS
               </Button>
@@ -239,8 +245,13 @@ export default function GiftsPage() {
         {tiles.map((t, i) => (
           <Panel key={t.label} index={i}>
             <CardContent className="flex flex-col gap-1.5">
-              <span className="text-sm text-muted-foreground">{t.label}</span>
-              <p className="text-3xl font-semibold tracking-tight">
+              <span
+                className={`text-xs font-medium tracking-wide
+                text-muted-foreground uppercase`}
+              >
+                {t.label}
+              </span>
+              <p className="text-3xl font-semibold tracking-tight tabular-nums">
                 <Count value={sumOf(t.items) / 1e6} decimals={1} />
                 <span
                   className={'ml-1 text-base font-medium text-muted-foreground'}
@@ -248,7 +259,10 @@ export default function GiftsPage() {
                   triệu ₫
                 </span>
               </p>
-              <p className="flex gap-2 text-xs text-muted-foreground">
+              <p
+                className={`flex gap-2 text-xs text-muted-foreground
+                tabular-nums`}
+              >
                 {t.items.length} lượt {t.hint && <>· {t.hint}</>}
               </p>
             </CardContent>
@@ -256,8 +270,16 @@ export default function GiftsPage() {
         ))}
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      <div
+        className={`mb-4 flex flex-col gap-3 rounded-2xl border bg-card p-3
+          shadow-soft sm:flex-row sm:items-center`}
+      >
+        <SlidersHorizontalIcon
+          aria-hidden
+          className="hidden size-4 text-muted-foreground sm:block"
+        />
         <NativeSelect
+          className="w-full sm:w-auto"
           aria-label="Nguồn"
           value={source}
           onChange={(e) => setSource(e.target.value as GiftSource | '')}
@@ -267,6 +289,7 @@ export default function GiftsPage() {
           <NativeSelectOption value="MANUAL">Ghi tay</NativeSelectOption>
         </NativeSelect>
         <NativeSelect
+          className="w-full sm:w-auto"
           aria-label="Bên nhận"
           value={side}
           onChange={(e) => setSide(e.target.value as Side | '')}
@@ -275,9 +298,12 @@ export default function GiftsPage() {
           <NativeSelectOption value="GROOM">Nhà trai</NativeSelectOption>
           <NativeSelectOption value="BRIDE">Nhà gái</NativeSelectOption>
         </NativeSelect>
-        <span className="text-sm text-muted-foreground">
-          {list.length} lượt · <strong>{formatVnd(sumOf(list))}</strong>
-        </span>
+        <p className="text-sm text-muted-foreground tabular-nums sm:ml-auto">
+          {list.length} lượt ·{' '}
+          <strong className="font-semibold text-foreground">
+            {formatVnd(sumOf(list))}
+          </strong>
+        </p>
       </div>
 
       <Card className="py-0">
@@ -289,44 +315,52 @@ export default function GiftsPage() {
               <TableHead>Bên nhận</TableHead>
               <TableHead>Số tiền / mô tả</TableHead>
               <TableHead>Thời gian</TableHead>
-              <TableHead />
+              <TableHead>
+                <span className="sr-only">Thao tác</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {list.map((g) => (
               <TableRow key={g.id}>
                 <TableCell className="max-w-72 whitespace-normal">
-                  <p className="font-medium">{g.giverName}</p>
+                  <p className="font-medium text-foreground">{g.giverName}</p>
                   {g.invitation && (
                     <p className="text-xs text-muted-foreground">
                       Thiệp: {g.invitation.name}
                     </p>
                   )}
                   {g.message && (
-                    <p className="mt-1 text-xs text-muted-foreground italic">
+                    <p
+                      className={`mt-1.5 border-l-2 border-gold/60 pl-2 text-xs
+                      text-muted-foreground italic`}
+                    >
                       “{g.message}”
                     </p>
                   )}
                 </TableCell>
                 <TableCell>
                   {g.source === 'PAYOS' ? (
-                    <Badge
-                      variant="secondary"
-                      className="gap-1 bg-primary/10 text-rose-deep"
-                    >
-                      <ZapIcon className="size-3" />
+                    <Badge variant="secondary" className="gap-1">
+                      <ZapIcon aria-hidden />
                       payOS
                     </Badge>
                   ) : (
-                    <span className="text-sm">
+                    <Badge variant="outline">
                       {GIFT_METHOD_LABEL[g.method]}
-                    </span>
+                    </Badge>
                   )}
                 </TableCell>
-                <TableCell>{g.side ? SIDE_LABEL[g.side] : '—'}</TableCell>
+                <TableCell>
+                  {g.side ? (
+                    SIDE_LABEL[g.side]
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell className="max-w-64 whitespace-normal">
                   {g.amount && (
-                    <p className="font-semibold tabular-nums">
+                    <p className="font-semibold text-foreground tabular-nums">
                       {formatVnd(g.amount)}
                     </p>
                   )}
@@ -341,7 +375,7 @@ export default function GiftsPage() {
                     </p>
                   )}
                 </TableCell>
-                <TableCell className="text-xs">
+                <TableCell className="text-xs tabular-nums">
                   {formatDateTime(g.receivedAt)}
                   {g.event && (
                     <p className="text-muted-foreground">{g.event.name}</p>
@@ -351,8 +385,10 @@ export default function GiftsPage() {
                   <div className="flex justify-end gap-1">
                     <Button
                       variant="ghost"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
                       title="Sửa"
+                      aria-label={`Sửa khoản mừng của ${g.giverName}`}
                       onClick={() => {
                         setFormError(null);
                         setForm({
@@ -372,8 +408,10 @@ export default function GiftsPage() {
                     </Button>
                     <Button
                       variant="destructive"
-                      size="icon-sm"
+                      size="icon"
+                      className="max-sm:size-11"
                       title="Xoá"
+                      aria-label={`Xoá khoản mừng của ${g.giverName}`}
                       onClick={() => remove(g)}
                     >
                       <Trash2Icon />
@@ -384,8 +422,24 @@ export default function GiftsPage() {
             ))}
             {data && !list.length && (
               <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground">
-                  Chưa có bản ghi nào.
+                <TableCell colSpan={6} className="py-14">
+                  <div
+                    className={`flex flex-col items-center gap-2 text-center
+                    text-muted-foreground`}
+                  >
+                    <span
+                      className={`grid size-12 place-items-center rounded-full
+                      bg-accent text-accent-foreground`}
+                    >
+                      <GiftIcon aria-hidden className="size-5" />
+                    </span>
+                    <p className="font-medium text-foreground">
+                      Chưa có bản ghi nào
+                    </p>
+                    <p className="text-sm">
+                      Bấm “Ghi nhận” để thêm khoản mừng đầu tiên.
+                    </p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}
@@ -394,18 +448,32 @@ export default function GiftsPage() {
       </Card>
 
       {channels && !payosOn && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          Muốn khách mừng online và tự đồng bộ số tiền? Cấu hình payOS trong{' '}
-          <Link href="/admin/settings" className="text-rose-deep underline">
-            Cài đặt
-          </Link>
-          .
-        </p>
+        <div
+          className={`mt-4 flex items-start gap-3 rounded-2xl border
+          border-dashed bg-accent/40 p-4 text-sm text-muted-foreground`}
+        >
+          <ZapIcon
+            aria-hidden
+            className="mt-0.5 size-4 shrink-0 text-accent-foreground"
+          />
+          <p>
+            Muốn khách mừng online và tự đồng bộ số tiền? Cấu hình payOS trong{' '}
+            <Link
+              href="/admin/settings"
+              className={`font-medium text-rose-deep underline
+              underline-offset-4 hover:text-primary`}
+            >
+              Cài đặt
+            </Link>
+            .
+          </p>
+        </div>
       )}
 
       <FormDialog
         open={!!form}
         title={form?.id ? 'Sửa mừng cưới' : 'Ghi nhận mừng cưới'}
+        description="Tiền mặt, chuyển khoản hoặc quà hiện vật."
         error={formError}
         onClose={() => setForm(null)}
         onSubmit={save}
@@ -414,9 +482,10 @@ export default function GiftsPage() {
           <>
             {locked && (
               <p
-                className={`rounded-lg bg-muted p-3 text-sm
-                text-muted-foreground`}
+                className={`flex items-start gap-2.5 rounded-xl border
+                bg-muted/60 p-3 text-sm text-muted-foreground`}
               >
+                <LockIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
                 Khoản này do payOS xác nhận nên số tiền, hình thức và bên nhận
                 được giữ nguyên.
               </p>

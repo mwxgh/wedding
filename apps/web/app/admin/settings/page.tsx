@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { CalendarHeartIcon } from 'lucide-react';
+import { CalendarHeartIcon, HeartIcon, SaveIcon } from 'lucide-react';
 
 import type {
   AdminEvent,
@@ -17,6 +17,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
@@ -145,17 +146,22 @@ export default function SettingsPage() {
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 font-serif text-xl">
-            <CalendarHeartIcon className="size-5 text-primary" />
+          <CardTitle className="flex items-center gap-3 font-serif text-xl">
+            <span
+              className={`grid size-9 place-items-center rounded-xl bg-secondary
+                text-primary`}
+            >
+              <CalendarHeartIcon aria-hidden className="size-5" />
+            </span>
             Ngày giờ & địa điểm
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="max-w-prose">
             Nguồn duy nhất cho ngày giờ và địa điểm: trang thiệp, đếm ngược, các
             sự kiện và hạn trong Kế hoạch đều tính theo đây.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={saveSchedule} className="flex flex-col gap-5">
+        <form onSubmit={saveSchedule} className="contents">
+          <CardContent className="flex flex-col gap-5">
             <FormField label="Ngày cưới">
               <Input
                 type="date"
@@ -165,7 +171,11 @@ export default function SettingsPage() {
                 required
               />
               {day && (
-                <p className="text-sm text-muted-foreground capitalize">
+                <p
+                  className={`inline-flex w-fit items-center rounded-full
+                  bg-accent px-3 py-1 text-sm font-medium text-accent-foreground
+                  capitalize`}
+                >
                   {formatWeddingDay(day)}
                 </p>
               )}
@@ -176,10 +186,14 @@ export default function SettingsPage() {
               return (
                 <fieldset
                   key={ev.id}
-                  className="grid gap-2 rounded-xl border p-4"
+                  className={`grid gap-3 rounded-2xl border bg-muted/30 p-4
+                  sm:p-5`}
                 >
-                  <legend className="px-1 font-medium">
-                    {ev.name}{' '}
+                  <legend
+                    className={`flex items-center gap-2 rounded-full border
+                    bg-card px-3 py-1 text-sm font-semibold shadow-xs`}
+                  >
+                    {ev.name}
                     <span className="font-normal text-muted-foreground">
                       · {SIDE_LABEL[ev.side]}
                     </span>
@@ -235,25 +249,40 @@ export default function SettingsPage() {
               );
             })}
             {events && !events.length && (
-              <p className="text-sm text-muted-foreground">
+              <p
+                className={`rounded-xl border border-dashed px-4 py-6
+                text-center text-sm text-muted-foreground`}
+              >
                 Chưa có sự kiện. Thêm ở trang Sự kiện & bàn tiệc.
               </p>
             )}
-            <Button type="submit" size="lg" className="self-start">
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit" size="lg" className="max-sm:h-11">
+              <SaveIcon data-icon="inline-start" aria-hidden />
               Lưu ngày giờ & địa điểm
             </Button>
-          </form>
-        </CardContent>
+          </CardFooter>
+        </form>
       </Card>
 
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">
+          <CardTitle className="flex items-center gap-3 font-serif text-xl">
+            <span
+              className={`grid size-9 place-items-center rounded-xl bg-secondary
+                text-primary`}
+            >
+              <HeartIcon aria-hidden className="size-5" />
+            </span>
             Thông tin đám cưới
           </CardTitle>
+          <CardDescription>
+            Tên cô dâu chú rể, bố mẹ hai bên và câu chuyện hiển thị trên thiệp.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={saveInfo} className="flex flex-col gap-4">
+        <form onSubmit={saveInfo} className="contents">
+          <CardContent className="flex flex-col gap-4">
             <FieldRow>
               <FormField label="Tên chú rể">
                 <Input
@@ -291,11 +320,14 @@ export default function SettingsPage() {
                 onChange={(e) => setI({ story: e.target.value })}
               />
             </FormField>
-            <Button type="submit" size="lg" className="self-start">
+          </CardContent>
+          <CardFooter className="justify-end">
+            <Button type="submit" size="lg" className="max-sm:h-11">
+              <SaveIcon data-icon="inline-start" aria-hidden />
               Lưu thông tin
             </Button>
-          </form>
-        </CardContent>
+          </CardFooter>
+        </form>
       </Card>
       <PayosSettings />
     </>

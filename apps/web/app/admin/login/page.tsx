@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { Loader2Icon } from 'lucide-react';
+
 import type { LoginRequest, LoginResponse } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import {
@@ -44,12 +46,30 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="font-script text-4xl text-rose-deep">
+    <main
+      className={`relative flex min-h-dvh items-center justify-center
+        overflow-hidden bg-background p-4`}
+    >
+      <div
+        aria-hidden
+        className={`pointer-events-none absolute inset-0
+          bg-[radial-gradient(60rem_40rem_at_10%_-10%,color-mix(in_oklch,var(--primary),transparent_85%),transparent),radial-gradient(50rem_35rem_at_110%_110%,color-mix(in_oklch,var(--gold),transparent_80%),transparent)]`}
+      />
+      <Card className="relative w-full max-w-sm shadow-lift">
+        <CardHeader className="items-center gap-3 text-center">
+          <span
+            aria-hidden
+            className={`mx-auto grid size-12 place-items-center rounded-2xl
+              bg-primary font-script text-2xl text-primary-foreground shadow-sm`}
+          >
+            W
+          </span>
+          <CardTitle className="font-serif text-2xl font-semibold">
             Wedding Admin
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Đăng nhập để quản lý thiệp mời và khách mời
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="flex flex-col gap-4">
@@ -62,6 +82,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="username"
+                className="h-11"
               />
             </FormField>
             <FormField label="Mật khẩu" htmlFor="password">
@@ -72,9 +93,22 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
+                className="h-11"
               />
             </FormField>
-            <Button type="submit" size="lg" disabled={loading}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="mt-1 h-11"
+            >
+              {loading && (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  aria-hidden
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              )}
               {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
           </form>
