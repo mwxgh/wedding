@@ -11,25 +11,26 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@repo/contracts": "workspace:*",
+    "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
-    "lucide-react": "1.54.0",
-    "motion": "12.43.0",
-    "next": "16.4.0",
+    "@repo/utils": "workspace:*",
+    "lucide-react": "catalog:",
+    "motion": "catalog:",
+    "next": "catalog:",
     "qrcode.react": "4.2.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "recharts": "3.8.0"
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "recharts": "catalog:"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@tailwindcss/postcss": "4.3.3",
-    "@types/node": "26.4.1",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
-    "eslint": "10.9.1",
-    "tailwindcss": "4.3.3",
-    "typescript": "7.0.2"
+    "@tailwindcss/postcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -1,171 +1,99 @@
-# Turborepo starter
+# wedding
 
-This Turborepo starter is maintained by the Turborepo core team.
+Turborepo monorepo (pnpm) gồm 2 app: `api` (NestJS) và `web` (Next.js). Cấu trúc theo cùng khuôn với `turbo-base`.
 
-## Using this example
+## Cấu trúc
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
+```text
+.
+├── apps/
+│   ├── api/                    # NestJS 12 API (ESM, cổng 3001)
+│   └── web/                    # Next.js 16 app (cổng 3000)
+├── packages/
+│   ├── db/                     # @repo/db – Prisma schema, migration, seed, client; ./nest: PrismaModule/Service/Filter
+│   ├── nest-common/            # @repo/nest-common – decorator field (class-validator) cho DTO của Nest
+│   ├── types/                  # @repo/types – interface + enum cho FE (sinh từ Prisma) + request/response viết tay
+│   ├── ui/                     # @repo/ui – component React/shadcn, globals.css
+│   ├── utils/                  # @repo/utils – hàm thuần dùng chung api ↔ web (lịch cưới, giờ VN)
+│   └── tooling/
+│       ├── eslint-config/      # @repo/eslint-config – base, next, react, nest
+│       └── typescript-config/  # @repo/typescript-config – base, nextjs, nestjs, react-library
+├── deploy/                     # Dockerfile cho từng app + docker-compose hạ tầng
+├── turbo.json                  # pipeline task của Turborepo
+└── pnpm-workspace.yaml         # workspace + catalog phiên bản dùng chung
 ```
 
-## What's inside?
+Quy ước:
 
-This Turborepo includes the following packages/apps:
+- `apps/*` là thứ chạy và deploy được. App không import lẫn nhau.
+- `packages/*` là thư viện nội bộ `@repo/<tên>`, khai báo bằng `"workspace:*"`. Cấu hình dùng chung nằm trong `packages/tooling/*`.
+- Package có `build` (db, nest-common, utils) xuất ra `dist/`. `types` và `ui` export thẳng source TypeScript (web transpile qua `transpilePackages`).
+- `api` chỉ được `import type` từ `@repo/types` (Node không chạy được file `.ts` trong package). Enum lúc runtime ở api lấy từ `@repo/db`.
+- Phiên bản dùng chung khai báo một lần trong `catalog:` của `pnpm-workspace.yaml`, package tham chiếu bằng `"catalog:"`.
 
-### Apps and Packages
-
-- `web`: a [Next.js](https://nextjs.org/) 16 app (port `3000`)
-- `api`: a [NestJS](https://nestjs.com/) 12 API (ESM, port `3001` by default, override with `PORT`)
-- `@repo/ui`: a stub React component library used by `web`
-- `@repo/eslint-config`: `eslint` configurations (`base`, `next-js`, `react-internal`, `nestjs` with `typescript-eslint`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```text
+web ──► types, utils, ui
+api ──► db, db/nest, nest-common, utils   (+ type-only: types)
 ```
 
-Without global `turbo`, use your package manager:
+## Bắt đầu
+
+Yêu cầu Node >= 24 và pnpm 11.
 
 ```sh
-cd my-turborepo
-npx turbo build
-pnpm exec turbo build
-pnpm exec turbo build
+pnpm install
+cp deploy/.env.example deploy/.env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+cp packages/db/.env.example packages/db/.env
+
+pnpm infra:up       # MySQL, phpMyAdmin, Redis, RustFS
+pnpm db:migrate     # áp migration + generate client và types
+pnpm db:seed
+pnpm dev            # chạy api + web
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Lệnh thường dùng
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+| Lệnh                               | Việc                                                          |
+| ---------------------------------- | ------------------------------------------------------------- |
+| `pnpm dev` / `dev:api` / `dev:web` | Chạy dev mọi app hoặc một app                                 |
+| `pnpm build`                       | Build mọi app và package                                      |
+| `pnpm lint` / `pnpm check-types`   | Lint và kiểm tra kiểu                                         |
+| `pnpm test`                        | Chạy test                                                     |
+| `pnpm db:generate`                 | Sinh Prisma client cho api (`packages/db/src/generated`)      |
+| `pnpm db:types`                    | Sinh interface + enum cho FE (`packages/types/src/generated`) |
+| `pnpm db:migrate` / `db:push`      | Migration hoặc đẩy schema thẳng vào DB (kèm generate)         |
+| `pnpm db:check`                    | Kiểm tra DB có khớp schema không                              |
+| `pnpm db:studio`                   | Mở Prisma Studio                                              |
+| `pnpm infra:up` / `infra:down`     | Bật/tắt hạ tầng Docker                                        |
 
-```sh
-turbo build --filter=api
+## Kiểu dữ liệu cho FE
+
+Prisma schema là nguồn duy nhất cho hình dạng model.
+
+```text
+packages/db/prisma/schema.prisma
+  ├─ generator client  → packages/db/src/generated     (PrismaClient cho api, không commit, chạy trong build)
+  └─ generator types   → packages/types/src/generated  (interface JSON + enum cho web, có commit)
 ```
 
-Without global `turbo`:
+- Generator `types` nằm ở `packages/db/prisma/generators/types.ts`. Nó sinh interface theo dạng JSON mà api gửi: `DateTime` và `BigInt` thành `string`, quan hệ là field optional.
+- Đổi schema thì chạy `pnpm db:migrate` (hoặc `pnpm db:types`) rồi commit `packages/types/src/generated`. Không sửa tay file sinh ra.
+- Response cho web viết trong `packages/types/src/responses.ts` bằng model sinh ra, ví dụ `With<Event, { tables: Table[] }>`.
+- Api giữ object `include`/`select` của Prisma và kiểu `*Data` trong `apps/api/src/common/responses.ts`. Cuối file có phép kiểm tra lúc biên dịch: nếu dữ liệu api trả về không khớp kiểu của web thì `check-types` báo lỗi.
 
-```sh
-npx turbo build --filter=api
-pnpm exec turbo build --filter=api
-pnpm exec turbo build --filter=api
-```
+## Thêm package nội bộ mới
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=api
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=api
-pnpm exec turbo dev --filter=api
-pnpm exec turbo dev --filter=api
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+1. Tạo `packages/<tên>/package.json` với `"name": "@repo/<tên>"` và các script `build`, `lint`, `check-types`.
+2. Kế thừa tsconfig từ `@repo/typescript-config` và eslint từ `@repo/eslint-config`. Phiên bản thư viện dùng `"catalog:"`.
+3. Thêm `"@repo/<tên>": "workspace:*"` vào app cần dùng, rồi `pnpm install`.
 
 ## Docker
 
-Dockerfiles live in `deploy/`, one per app (uses `turbo prune` so only that app's dependencies are installed). Build from the repo root:
+Mỗi app có một Dockerfile trong `deploy/`, dùng `turbo prune` để chỉ cài phụ thuộc của app đó. Build từ root:
 
 ```sh
 docker build -f deploy/api.Dockerfile -t wedding-api .
 docker build -f deploy/web.Dockerfile -t wedding-web .
-
-docker run --rm -p 3001:3001 wedding-api
-docker run --rm -p 3000:3000 wedding-web
 ```

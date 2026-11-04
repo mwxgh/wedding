@@ -2,11 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-import type { OkResponse } from '@repo/contracts';
 import { ModerationStatus } from '@repo/db';
 import type { Photo } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { OkResponse } from '@repo/types';
 
-import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
 const ALLOWED_MIME: Record<string, string> = {

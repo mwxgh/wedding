@@ -16,7 +16,7 @@ import type {
   PaymentInput,
   PlanCategory,
   Side,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import {

@@ -5,7 +5,7 @@ import type {
   Relation,
   RsvpStatus,
   Side,
-} from './enums.js';
+} from './generated/enums.js';
 
 /** Request bodies. Dates are ISO strings. The API's DTO classes implement these. */
 

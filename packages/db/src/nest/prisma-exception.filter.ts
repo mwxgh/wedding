@@ -1,13 +1,15 @@
 import {
-  ArgumentsHost,
+  type ArgumentsHost,
   Catch,
-  ExceptionFilter,
+  type ExceptionFilter,
   HttpStatus,
 } from '@nestjs/common';
 
-import type { Response } from 'express';
+import { Prisma } from '../generated/prisma/client.js';
 
-import { Prisma } from '@repo/db';
+interface JsonResponse {
+  status(code: number): { json(body: unknown): unknown };
+}
 
 const STATUS_BY_CODE: Record<string, [HttpStatus, string]> = {
   P2025: [HttpStatus.NOT_FOUND, 'Không tìm thấy dữ liệu'],
@@ -15,6 +17,7 @@ const STATUS_BY_CODE: Record<string, [HttpStatus, string]> = {
   P2003: [HttpStatus.BAD_REQUEST, 'Dữ liệu liên kết không hợp lệ'],
 };
 
+/** Known Prisma errors → 404/409/400; any other Prisma error → 500. */
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
   catch(err: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
@@ -24,7 +27,7 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     ];
     host
       .switchToHttp()
-      .getResponse<Response>()
+      .getResponse<JsonResponse>()
       .status(status)
       .json({ statusCode: status, message });
   }

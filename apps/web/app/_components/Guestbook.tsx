@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import type { PublicGuestbookEntry } from '@repo/contracts';
+import type { PublicGuestbookEntry } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { Input } from '@repo/ui/components/input';

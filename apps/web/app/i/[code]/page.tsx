@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import type { PublicInvitation } from '@repo/contracts';
+import type { PublicInvitation } from '@repo/types';
 
 import { WeddingPage } from '../../_components/WeddingPage';
 import { serverGet } from '../../_lib/api';

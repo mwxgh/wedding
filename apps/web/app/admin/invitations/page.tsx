@@ -16,7 +16,7 @@ import type {
   InvitationInput,
   Relation,
   Side,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';

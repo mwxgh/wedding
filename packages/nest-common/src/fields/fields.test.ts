@@ -23,7 +23,7 @@ import {
   StringField,
   UrlField,
   UuidField,
-} from './index.js';
+} from '../index.js';
 
 /** Transform + validate like Nest's ValidationPipe({ transform: true }). */
 async function check<T extends object>(

@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { CheckIcon, EyeOffIcon, Trash2Icon } from 'lucide-react';
 
-import type { AdminGuestbookEntry, ModerationStatus } from '@repo/contracts';
+import type { AdminGuestbookEntry, ModerationStatus } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import {
   Card,

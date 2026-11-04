@@ -7,7 +7,7 @@ import type {
   AdminPhoto,
   AdminTask,
   PlanSummary,
-} from '@repo/contracts';
+} from '@repo/types';
 import { type ExcelColumn, excelSheet } from '@repo/ui/lib/excel';
 
 import {

@@ -16,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 
-import type { Dashboard } from '@repo/contracts';
+import type { Dashboard } from '@repo/types';
 import {
   type ChartConfig,
   ChartContainer,

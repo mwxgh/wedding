@@ -1,14 +1,14 @@
-import {
-  type PublicGallery,
-  type PublicGuestbookEntry,
-  type PublicInvitation,
-  type PublicWedding,
-  weddingStart,
-} from '@repo/contracts';
+import type {
+  PublicGallery,
+  PublicGuestbookEntry,
+  PublicInvitation,
+  PublicWedding,
+} from '@repo/types';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { LoveCursor } from '@repo/ui/components/love-cursor';
 import { LoveJourney } from '@repo/ui/components/love-journey';
 import { SoundToggle } from '@repo/ui/components/sound-toggle';
+import { weddingStart } from '@repo/utils';
 
 import { serverGet } from '../_lib/api';
 import { SIDE_LABEL, formatDate } from '../_lib/format';

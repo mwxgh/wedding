@@ -2,11 +2,7 @@
 
 import { Fragment, useState } from 'react';
 
-import type {
-  PublicInvitation,
-  RsvpRequest,
-  RsvpStatus,
-} from '@repo/contracts';
+import type { PublicInvitation, RsvpRequest, RsvpStatus } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
 import {

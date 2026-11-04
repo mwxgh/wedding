@@ -10,7 +10,7 @@ import type {
   PlanCategory,
   Side,
   TaskInput,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import {

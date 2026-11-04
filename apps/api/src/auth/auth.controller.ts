@@ -12,10 +12,10 @@ import { JwtService } from '@nestjs/jwt';
 
 import bcrypt from 'bcryptjs';
 
-import type { LoginRequest, LoginResponse } from '@repo/contracts';
-import { EmailField, StringField } from '@repo/validation';
+import { PrismaService } from '@repo/db/nest';
+import { EmailField, StringField } from '@repo/nest-common';
+import type { LoginRequest, LoginResponse } from '@repo/types';
 
-import { PrismaService } from '../prisma/prisma.service';
 import { AdminGuard, type AdminPayload } from './auth.guard';
 
 class LoginDto implements LoginRequest {

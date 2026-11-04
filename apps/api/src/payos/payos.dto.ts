@@ -1,8 +1,3 @@
-import type {
-  GiftPaymentInput,
-  PayosConfigInput,
-  PayosWebhookInput,
-} from '@repo/contracts';
 import { Side } from '@repo/db';
 import {
   BooleanField,
@@ -10,7 +5,12 @@ import {
   IntField,
   StringField,
   UrlField,
-} from '@repo/validation';
+} from '@repo/nest-common';
+import type {
+  GiftPaymentInput,
+  PayosConfigInput,
+  PayosWebhookInput,
+} from '@repo/types';
 
 export class GiftPaymentDto implements GiftPaymentInput {
   @EnumField(Side) side: Side;

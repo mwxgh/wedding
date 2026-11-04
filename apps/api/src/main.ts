@@ -3,8 +3,9 @@ import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
+import { PrismaExceptionFilter } from '@repo/db/nest';
+
 import { AppModule } from './app.module';
-import { PrismaExceptionFilter } from './common/prisma-exception.filter';
 import { config } from './config';
 
 // Gift amounts are BigInt; serialize them as strings in JSON
