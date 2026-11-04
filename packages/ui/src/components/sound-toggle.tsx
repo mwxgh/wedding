@@ -100,17 +100,22 @@ export function SoundToggle({
         aria-pressed={playing}
         aria-label={playing ? 'Tắt nhạc' : 'Bật nhạc'}
         className={cn(
-          `fixed top-4 right-4 z-[55] inline-flex items-center gap-2
-          rounded-full border bg-card/80 px-3 py-1.5 text-xs tracking-[0.2em]
-          text-foreground uppercase shadow-soft backdrop-blur transition-colors
-          hover:bg-card`,
+          `fixed top-4 right-4 z-[55] inline-flex h-11 items-center gap-2
+          rounded-full border border-border/70 bg-card/75 px-4 text-[11px]
+          font-medium tracking-[0.2em] text-foreground uppercase shadow-soft
+          backdrop-blur-md transition-colors outline-none hover:bg-card
+          focus-visible:ring-3 focus-visible:ring-ring/50`,
           className,
         )}
       >
         {playing ? (
-          <Music2Icon className="size-4 animate-pulse text-rose-deep" />
+          <Music2Icon
+            aria-hidden
+            className={`size-4 animate-pulse text-primary
+              motion-reduce:animate-none`}
+          />
         ) : (
-          <VolumeXIcon className="size-4 text-muted-foreground" />
+          <VolumeXIcon aria-hidden className="size-4 text-muted-foreground" />
         )}
         {playing ? 'Sound on' : 'Sound off'}
       </button>
