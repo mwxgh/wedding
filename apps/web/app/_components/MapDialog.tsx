@@ -48,8 +48,8 @@ export function MapDialog({
         {label}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="gap-3 p-3 sm:max-w-2xl sm:p-4">
-          <DialogHeader className="pr-8">
+        <DialogContent className="gap-4 sm:max-w-2xl">
+          <DialogHeader>
             <DialogTitle className="font-serif text-xl">
               {title ?? venue.venueName}
             </DialogTitle>
@@ -59,7 +59,7 @@ export function MapDialog({
             </DialogDescription>
           </DialogHeader>
           <div
-            className={`relative aspect-4/3 overflow-hidden rounded-lg border
+            className={`relative aspect-4/3 overflow-hidden rounded-xl border
               sm:aspect-video`}
           >
             {!loaded && <Skeleton className="absolute inset-0 rounded-none" />}
@@ -74,9 +74,12 @@ export function MapDialog({
               />
             )}
           </div>
-          <div className="flex flex-wrap justify-end gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
             <a
-              className={buttonVariants({ variant: 'outline' })}
+              className={buttonVariants({
+                variant: 'outline',
+                className: 'max-sm:h-11',
+              })}
               href={links.open}
               target="_blank"
               rel="noreferrer"
@@ -85,7 +88,7 @@ export function MapDialog({
               Mở Google Maps
             </a>
             <a
-              className={buttonVariants()}
+              className={buttonVariants({ className: 'max-sm:h-11' })}
               href={links.directions}
               target="_blank"
               rel="noreferrer"

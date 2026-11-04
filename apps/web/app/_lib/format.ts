@@ -19,6 +19,25 @@ export const formatDate = (iso: string) =>
     timeZone: TZ,
   }).format(new Date(iso));
 
+/** Calendar parts of an instant in Vietnam time, for invitation layouts. */
+export const dateParts = (iso: string) => {
+  const parts = new Intl.DateTimeFormat('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: TZ,
+  }).formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return {
+    weekday: get('weekday'),
+    day: get('day'),
+    month: get('month'),
+    year: get('year'),
+  };
+};
+
 export const formatTime = (iso: string) =>
   new Intl.DateTimeFormat('vi-VN', {
     hour: '2-digit',

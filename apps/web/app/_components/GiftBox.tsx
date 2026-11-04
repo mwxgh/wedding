@@ -9,7 +9,10 @@ import {
   ExternalLinkIcon,
   GiftIcon,
   HeartIcon,
+  Loader2Icon,
+  QrCodeIcon,
   RotateCcwIcon,
+  WalletIcon,
 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -20,7 +23,7 @@ import type {
   PublicGiftStatus,
   Side,
 } from '@repo/types';
-import { Button } from '@repo/ui/components/button';
+import { Button, buttonVariants } from '@repo/ui/components/button';
 import { Input } from '@repo/ui/components/input';
 import { Textarea } from '@repo/ui/components/textarea';
 import { cn } from '@repo/ui/lib/utils';
@@ -47,7 +50,7 @@ const shortVnd = (n: number) =>
 const HEART =
   'data:image/svg+xml;utf8,' +
   encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#fff"/><path fill="#b5838d" d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`,
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#fff"/><path fill="#6b1622" d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>`,
   );
 
 type Step =
@@ -59,6 +62,73 @@ type Step =
       payment: PublicGiftPayment;
       reason: 'expired' | 'cancelled';
     };
+
+const STEPS = [
+  { label: 'Số tiền', icon: WalletIcon },
+  { label: 'Quét mã', icon: QrCodeIcon },
+  { label: 'Hoàn tất', icon: HeartIcon },
+] as const;
+
+/** Presentational progress: amount → QR → done. */
+function StepIndicator({ kind }: { kind: Step['kind'] }) {
+  const current = kind === 'form' ? 0 : kind === 'qr' ? 1 : 2;
+  return (
+    <ol
+      className="mb-6 flex items-center gap-2"
+      aria-label="Các bước mừng cưới"
+    >
+      {STEPS.map(({ label, icon: Icon }, i) => {
+        const state =
+          i < current ? 'done' : i === current ? 'current' : 'upcoming';
+        return (
+          <li
+            key={label}
+            aria-current={state === 'current' ? 'step' : undefined}
+            className="flex flex-1 items-center gap-2 last:flex-none"
+          >
+            <span
+              className={cn(
+                `flex size-8 shrink-0 items-center justify-center rounded-full
+                text-xs font-semibold transition-colors duration-300`,
+                state === 'current' &&
+                  'bg-primary text-primary-foreground shadow-sm',
+                state === 'done' && 'bg-primary/15 text-rose-deep',
+                state === 'upcoming' &&
+                  'bg-muted text-muted-foreground ring-1 ring-border',
+              )}
+            >
+              {state === 'done' ? (
+                <CheckIcon aria-hidden className="size-4" />
+              ) : (
+                <Icon aria-hidden className="size-4" />
+              )}
+            </span>
+            <span
+              className={cn(
+                'text-xs font-medium whitespace-nowrap',
+                state === 'upcoming'
+                  ? 'text-muted-foreground'
+                  : 'text-foreground',
+                state !== 'current' && 'max-sm:sr-only',
+              )}
+            >
+              {label}
+            </span>
+            {i < STEPS.length - 1 && (
+              <span
+                aria-hidden
+                className={cn(
+                  'h-px flex-1 transition-colors duration-300',
+                  i < current ? 'bg-primary/40' : 'bg-border',
+                )}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 /**
  * Online wedding gift: pick a family and an amount, scan a payOS QR, and the
@@ -122,14 +192,14 @@ export function GiftBox({
 
   return (
     <div
-      className={`relative mx-auto max-w-3xl overflow-hidden rounded-3xl border
-        bg-card shadow-soft`}
+      className={`relative mx-auto max-w-3xl overflow-hidden rounded-3xl bg-card
+        shadow-lift ring-1 ring-foreground/[0.06]`}
     >
       {/* soft wash behind the content */}
       <div
         aria-hidden
         className={`pointer-events-none absolute -top-32 -right-24 size-80
-          rounded-full bg-primary/15 blur-3xl`}
+          rounded-full bg-primary/10 blur-3xl`}
       />
       <div
         aria-hidden
@@ -140,7 +210,21 @@ export function GiftBox({
       <div className="relative grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <Envelope paid={step.kind === 'paid'} />
 
-        <div className="p-6 sm:p-8">
+        <div className="p-5 sm:p-8">
+          {/* mobile stand-in for the envelope panel */}
+          <div className="mb-5 flex items-center gap-3 md:hidden">
+            <span
+              aria-hidden
+              className={`flex size-10 items-center justify-center rounded-2xl
+                bg-primary/10 text-rose-deep`}
+            >
+              <GiftIcon className="size-5" />
+            </span>
+            <p className="font-serif text-2xl text-rose-deep italic">
+              Gửi yêu thương
+            </p>
+          </div>
+          <StepIndicator kind={step.kind} />
           <AnimatePresence mode="wait" initial={false}>
             {step.kind === 'form' && (
               <Pane key="form">
@@ -152,7 +236,7 @@ export function GiftBox({
                       role="radiogroup"
                       aria-label="Gửi mừng cho"
                       className={`grid grid-cols-2 gap-1 rounded-full bg-muted
-                      p-1`}
+                      p-1 ring-1 ring-border/60`}
                     >
                       {sides.map((s) => (
                         <button
@@ -162,8 +246,10 @@ export function GiftBox({
                           aria-checked={side === s}
                           onClick={() => setSide(s)}
                           className={cn(
-                            `relative rounded-full px-4 py-2 text-sm font-medium
-                            transition-colors`,
+                            `relative min-h-11 rounded-full px-4 py-2 text-sm
+                            font-medium transition-colors outline-none
+                            focus-visible:ring-3 focus-visible:ring-ring/50
+                            sm:min-h-10`,
                             side === s
                               ? 'text-foreground'
                               : 'text-muted-foreground hover:text-foreground',
@@ -185,7 +271,10 @@ export function GiftBox({
                     </div>
                   )}
                   {sides.length === 1 && (
-                    <p className="text-center text-sm text-muted-foreground">
+                    <p
+                      className={`w-fit rounded-full bg-secondary px-3 py-1
+                      text-sm font-medium text-secondary-foreground`}
+                    >
                       Gửi mừng tới {FAMILY[side].toLowerCase()}
                     </p>
                   )}
@@ -194,7 +283,7 @@ export function GiftBox({
                     <legend className="mb-2.5 text-sm font-medium">
                       Số tiền mừng
                     </legend>
-                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-3">
+                    <div className="grid grid-cols-3 gap-2">
                       {PRESETS.map((v) => (
                         <button
                           key={v}
@@ -205,12 +294,14 @@ export function GiftBox({
                             setCustom('');
                           }}
                           className={cn(
-                            `rounded-xl border px-2 py-2.5 text-sm font-medium
-                            tabular-nums transition-all`,
+                            `min-h-11 rounded-xl border px-2 py-2.5 text-sm
+                            font-medium tabular-nums transition-all outline-none
+                            focus-visible:ring-3 focus-visible:ring-ring/50`,
                             preset === v
                               ? `border-primary bg-primary/10 text-rose-deep
-                                shadow-sm`
-                              : 'hover:border-primary/50 hover:bg-muted/60',
+                                shadow-sm ring-3 ring-primary/15`
+                              : `bg-card hover:border-primary/50
+                                hover:bg-muted/60`,
                           )}
                         >
                           {shortVnd(v)}
@@ -221,12 +312,14 @@ export function GiftBox({
                         aria-pressed={preset === null}
                         onClick={() => setPreset(null)}
                         className={cn(
-                          `rounded-xl border px-2 py-2.5 text-sm font-medium
-                          transition-all`,
+                          `min-h-11 rounded-xl border px-2 py-2.5 text-sm
+                          font-medium transition-all outline-none
+                          focus-visible:ring-3 focus-visible:ring-ring/50`,
                           preset === null
                             ? `border-primary bg-primary/10 text-rose-deep
-                              shadow-sm`
-                            : 'hover:border-primary/50 hover:bg-muted/60',
+                              shadow-sm ring-3 ring-primary/15`
+                            : `bg-card hover:border-primary/50
+                              hover:bg-muted/60`,
                         )}
                       >
                         Số khác
@@ -246,7 +339,7 @@ export function GiftBox({
                               autoFocus
                               aria-label="Số tiền khác"
                               placeholder="Nhập số tiền"
-                              className="pr-10 text-base tabular-nums"
+                              className="h-11 pr-10 text-base tabular-nums"
                               value={
                                 custom
                                   ? new Intl.NumberFormat('vi-VN').format(
@@ -261,7 +354,8 @@ export function GiftBox({
                               }
                             />
                             <span
-                              className={`absolute top-1/2 right-3 mt-0.5
+                              aria-hidden
+                              className={`absolute top-1/2 right-3.5 mt-0.5
                               -translate-y-1/2 text-muted-foreground`}
                             >
                               ₫
@@ -293,15 +387,32 @@ export function GiftBox({
                     />
                   </FormField>
 
-                  <Button type="submit" size="lg" disabled={loading}>
-                    <GiftIcon data-icon="inline-start" />
+                  <Button
+                    type="submit"
+                    size="lg"
+                    disabled={loading}
+                    className="h-12 rounded-xl text-base sm:h-11"
+                  >
+                    {loading ? (
+                      <Loader2Icon
+                        data-icon="inline-start"
+                        aria-hidden
+                        className="animate-spin motion-reduce:animate-none"
+                      />
+                    ) : (
+                      <GiftIcon data-icon="inline-start" aria-hidden />
+                    )}
                     {loading
                       ? 'Đang tạo mã…'
                       : amount >= MIN_AMOUNT
                         ? `Tạo mã QR · ${formatVnd(amount)}`
                         : 'Tạo mã QR mừng cưới'}
                   </Button>
-                  <p className="text-center text-xs text-muted-foreground">
+                  <p
+                    className={
+                      '-mt-1 text-center text-xs text-muted-foreground'
+                    }
+                  >
                     Chuyển khoản qua mã QR, tiền về thẳng tài khoản của{' '}
                     {FAMILY[side].toLowerCase()}.
                   </p>
@@ -347,21 +458,33 @@ export function GiftBox({
             {step.kind === 'ended' && (
               <Pane key="ended">
                 <div
-                  className={`flex flex-col items-center gap-4 py-10
-                  text-center`}
+                  className={
+                    'flex flex-col items-center gap-4 py-8 text-center'
+                  }
                 >
-                  <ClockIcon className="size-10 text-muted-foreground" />
+                  <span
+                    aria-hidden
+                    className={`flex size-16 items-center justify-center
+                    rounded-full bg-muted ring-8 ring-muted/40`}
+                  >
+                    <ClockIcon className="size-7 text-muted-foreground" />
+                  </span>
                   <p className="font-serif text-2xl">
                     {step.reason === 'expired'
                       ? 'Mã QR đã hết hạn'
                       : 'Giao dịch đã huỷ'}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="max-w-sm text-sm text-muted-foreground">
                     Nếu bạn đã chuyển khoản, đừng lo: cô dâu chú rể vẫn nhận
                     được và sẽ đối soát lại.
                   </p>
-                  <Button onClick={reset} variant="outline">
-                    <RotateCcwIcon data-icon="inline-start" />
+                  <Button
+                    onClick={reset}
+                    variant="outline"
+                    size="lg"
+                    className="max-sm:h-11"
+                  >
+                    <RotateCcwIcon data-icon="inline-start" aria-hidden />
                     Tạo mã mới
                   </Button>
                 </div>
@@ -375,12 +498,17 @@ export function GiftBox({
 }
 
 function Pane({ children }: { children: React.ReactNode }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+      initial={
+        reduce ? { opacity: 0 } : { opacity: 0, y: 12, filter: 'blur(4px)' }
+      }
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, y: -12, filter: 'blur(4px)' }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      exit={
+        reduce ? { opacity: 0 } : { opacity: 0, y: -12, filter: 'blur(4px)' }
+      }
+      transition={{ duration: reduce ? 0.15 : 0.35, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
@@ -412,6 +540,7 @@ function QrStep({
   onBack: () => void;
   onDone: (status: PublicGiftStatus['status']) => void;
 }) {
+  const reduce = useReducedMotion();
   const left = useCountdown(payment.expiresAt);
   const mm = String(Math.floor(left / 60_000)).padStart(2, '0');
   const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, '0');
@@ -442,13 +571,18 @@ function QrStep({
   }, [payment.id, onDone]);
 
   return (
-    <div className="flex flex-col items-center gap-4 text-center">
-      <p className="text-sm text-muted-foreground">
-        Mở app ngân hàng và quét mã để mừng
-      </p>
-      <p className="font-serif text-3xl text-rose-deep tabular-nums">
-        {formatVnd(payment.amount)}
-      </p>
+    <div className="flex flex-col items-center gap-5 text-center">
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-sm text-muted-foreground">
+          Mở app ngân hàng và quét mã để mừng
+        </p>
+        <p
+          className={`font-serif text-4xl tracking-tight text-rose-deep
+            tabular-nums`}
+        >
+          {formatVnd(payment.amount)}
+        </p>
+      </div>
 
       <div className="relative p-3">
         {/* gold corner frame */}
@@ -464,12 +598,15 @@ function QrStep({
             className={cn('absolute size-8 border-gold', c)}
           />
         ))}
-        <div className="relative rounded-xl bg-white p-3 shadow-sm">
+        <div
+          className={`relative rounded-2xl bg-white p-3 shadow-soft ring-1
+            ring-foreground/[0.06]`}
+        >
           <QRCodeSVG
             value={payment.qrCode}
             size={208}
             level="M"
-            fgColor="#3b2f2a"
+            fgColor="#1e2a24"
             imageSettings={{
               src: HEART,
               height: 40,
@@ -479,35 +616,45 @@ function QrStep({
             title={`Mã QR chuyển khoản ${formatVnd(payment.amount)}`}
           />
           {/* scan line */}
-          <motion.span
-            aria-hidden
-            className={`absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r
+          {!reduce && (
+            <motion.span
+              aria-hidden
+              className={`absolute inset-x-3 h-0.5 rounded-full bg-gradient-to-r
               from-transparent via-primary/70 to-transparent`}
-            animate={{ top: ['12px', 'calc(100% - 12px)', '12px'] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-          />
+              animate={{ top: ['12px', 'calc(100% - 12px)', '12px'] }}
+              transition={{
+                duration: 3.2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2 text-sm">
-        <span className="relative flex size-2.5">
+      <div
+        role="status"
+        className={`flex items-center gap-2 rounded-full bg-secondary px-3.5
+          py-1.5 text-sm font-medium text-secondary-foreground`}
+      >
+        <span aria-hidden className="relative flex size-2.5">
           <span
             className={`absolute inline-flex size-full animate-ping rounded-full
-              bg-primary opacity-60`}
+              bg-primary opacity-60 motion-reduce:animate-none`}
           />
           <span
             className={'relative inline-flex size-2.5 rounded-full bg-primary'}
           />
         </span>
         Đang chờ chuyển khoản
-        <span className="text-muted-foreground tabular-nums">
+        <span className="font-normal tabular-nums opacity-80">
           · còn {mm}:{ss}
         </span>
       </div>
 
       <dl
-        className={`grid w-full gap-1.5 rounded-2xl bg-muted/60 p-4 text-left
-          text-sm`}
+        className={`grid w-full divide-y divide-border/70 rounded-2xl border
+          bg-muted/40 px-4 py-1 text-left text-sm`}
       >
         <Row label="Chủ tài khoản" value={payment.accountName} />
         <Row label="Số tài khoản" value={payment.accountNumber} copy />
@@ -519,22 +666,28 @@ function QrStep({
         <Row label="Nội dung" value={payment.description} copy />
       </dl>
 
-      <div className="flex w-full flex-wrap justify-center gap-2">
-        <Button variant="ghost" onClick={onBack}>
-          Đổi số tiền
-        </Button>
+      <div className="grid w-full gap-2 sm:flex sm:justify-center">
         <a
           href={payment.checkoutUrl}
           target="_blank"
           rel="noreferrer"
-          className={cn(
-            `inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm
-            font-medium hover:bg-muted`,
-          )}
+          className={buttonVariants({
+            variant: 'outline',
+            size: 'lg',
+            className: 'max-sm:h-11 sm:order-2',
+          })}
         >
-          <ExternalLinkIcon className="size-4" />
+          <ExternalLinkIcon data-icon="inline-start" aria-hidden />
           Trang thanh toán payOS
         </a>
+        <Button
+          variant="ghost"
+          size="lg"
+          onClick={onBack}
+          className="max-sm:h-11 sm:order-1"
+        >
+          Đổi số tiền
+        </Button>
       </div>
     </div>
   );
@@ -552,16 +705,29 @@ function Row({
 }) {
   const [done, setDone] = useState(false);
   return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-1.5 font-medium">
-        <span className="truncate">{value}</span>
+    <div className="flex min-h-12 items-center justify-between gap-3 py-1.5">
+      <dt className="shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="flex min-w-0 items-center gap-1 font-medium">
+        <span className="truncate tabular-nums" title={value}>
+          {value}
+        </span>
         {copy && (
           <button
             type="button"
             title={`Sao chép ${label.toLowerCase()}`}
-            className={`rounded-md p-1 text-muted-foreground hover:bg-card
-            hover:text-foreground`}
+            aria-label={
+              done
+                ? `Đã sao chép ${label.toLowerCase()}`
+                : `Sao chép ${label.toLowerCase()}`
+            }
+            className={cn(
+              `-mr-2 flex size-10 shrink-0 items-center justify-center
+              rounded-lg transition-colors outline-none focus-visible:ring-3
+              focus-visible:ring-ring/50`,
+              done
+                ? 'text-rose-deep'
+                : 'text-muted-foreground hover:bg-card hover:text-foreground',
+            )}
             onClick={async () => {
               await navigator.clipboard.writeText(
                 typeof copy === 'string' ? copy : value,
@@ -571,11 +737,16 @@ function Row({
             }}
           >
             {done ? (
-              <CheckIcon className="size-3.5 text-primary" />
+              <CheckIcon aria-hidden className="size-4" />
             ) : (
-              <CopyIcon className="size-3.5" />
+              <CopyIcon aria-hidden className="size-4" />
             )}
           </button>
+        )}
+        {copy && (
+          <span role="status" className="sr-only">
+            {done ? `Đã sao chép ${label.toLowerCase()}` : ''}
+          </span>
         )}
       </dd>
     </div>
@@ -590,8 +761,8 @@ function Envelope({ paid }: { paid: boolean }) {
   return (
     <div
       className={`relative hidden items-center justify-center overflow-hidden
-        border-r bg-gradient-to-br from-primary/10 via-transparent to-gold/10
-        p-8 md:flex`}
+        border-r border-border/70 bg-gradient-to-br from-primary/10
+        via-accent/40 to-gold/15 p-8 md:flex`}
     >
       <motion.div
         className="relative w-full max-w-56"
@@ -600,7 +771,11 @@ function Envelope({ paid }: { paid: boolean }) {
         }
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <svg viewBox="0 0 200 140" className="w-full drop-shadow-xl">
+        <svg
+          viewBox="0 0 200 140"
+          aria-hidden
+          className="w-full drop-shadow-xl"
+        >
           <rect
             x="4"
             y="20"
@@ -638,7 +813,7 @@ function Envelope({ paid }: { paid: boolean }) {
           />
         </svg>
       </motion.div>
-      <p className="absolute bottom-6 font-script text-2xl text-rose-deep">
+      <p className="absolute bottom-6 font-serif text-2xl text-rose-deep italic">
         Gửi yêu thương
       </p>
       <AnimatePresence>{paid && !reduce && <HeartBurst />}</AnimatePresence>
@@ -693,10 +868,10 @@ function Thanks({
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', bounce: 0.5, duration: 0.7 }}
-        className={`flex size-16 items-center justify-center rounded-full
-          bg-primary/15`}
+        className={`flex size-20 items-center justify-center rounded-full
+          bg-primary/15 ring-8 ring-primary/5`}
       >
-        <svg viewBox="0 0 24 24" className="size-8 text-rose-deep">
+        <svg viewBox="0 0 24 24" aria-hidden className="size-8 text-rose-deep">
           <motion.path
             d="M5 12.5l4.5 4.5L19 7.5"
             fill="none"
@@ -710,13 +885,24 @@ function Thanks({
           />
         </svg>
       </motion.div>
-      <p className="font-script text-4xl text-rose-deep">Cảm ơn {name}!</p>
+      <p className="font-serif text-4xl font-light text-rose-deep italic">
+        Cảm ơn {name}!
+      </p>
       <p className="max-w-sm text-muted-foreground">
         {family} đã nhận được{' '}
-        <strong className="text-foreground">{formatVnd(amount)}</strong>. Tấm
-        lòng của bạn là món quà quý giá nhất trong ngày vui của chúng mình.
+        <strong className="font-semibold text-foreground tabular-nums">
+          {formatVnd(amount)}
+        </strong>
+        . Tấm lòng của bạn là món quà quý giá nhất trong ngày vui của chúng
+        mình.
       </p>
-      <Button variant="ghost" onClick={onAgain}>
+      <Button
+        variant="outline"
+        size="lg"
+        onClick={onAgain}
+        className="mt-2 max-sm:h-11"
+      >
+        <GiftIcon data-icon="inline-start" aria-hidden />
         Gửi thêm một món quà
       </Button>
     </div>

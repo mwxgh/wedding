@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { QuoteIcon, SendIcon } from 'lucide-react';
+
 import type { PublicGuestbookEntry } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
@@ -47,7 +49,7 @@ export function Guestbook({
   return (
     <>
       <Card className="mx-auto max-w-2xl">
-        <CardContent>
+        <CardContent className="sm:px-8 sm:py-2">
           <form onSubmit={submit} className="flex flex-col gap-4">
             {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
             {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
@@ -70,7 +72,13 @@ export function Guestbook({
                 className="min-h-28"
               />
             </FormField>
-            <Button type="submit" size="lg" disabled={state.loading}>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={state.loading}
+              className="mt-1 max-sm:h-11 sm:self-end"
+            >
+              <SendIcon data-icon="inline-start" aria-hidden />
               {state.loading ? 'Đang gửi…' : 'Gửi lời chúc'}
             </Button>
           </form>
@@ -78,12 +86,22 @@ export function Guestbook({
       </Card>
 
       {entries.length > 0 && (
-        <div className="mt-7 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3">
           {entries.map((e) => (
-            <Card key={e.id}>
-              <CardContent>
-                <p className="whitespace-pre-line italic">“{e.message}”</p>
-                <p className="mt-2.5 font-medium text-rose-deep">
+            <Card
+              key={e.id}
+              className={`mb-4 break-inside-avoid transition-shadow
+              hover:shadow-lift`}
+            >
+              <CardContent className="flex flex-col gap-3">
+                <QuoteIcon aria-hidden className="size-5 text-gold" />
+                <p
+                  className={`leading-relaxed whitespace-pre-line
+                  text-foreground/90`}
+                >
+                  {e.message}
+                </p>
+                <p className="font-serif text-base font-medium text-rose-deep">
                   — {e.authorName}
                 </p>
               </CardContent>

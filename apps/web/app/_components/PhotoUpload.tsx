@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { ImageUpIcon } from 'lucide-react';
+
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { Input } from '@repo/ui/components/input';
@@ -44,7 +46,7 @@ export function PhotoUpload({ invitationCode }: { invitationCode: string }) {
 
   return (
     <Card className="mx-auto max-w-2xl">
-      <CardContent>
+      <CardContent className="sm:px-8 sm:py-2">
         <form onSubmit={submit} className="flex flex-col gap-4">
           {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
           {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
@@ -57,6 +59,9 @@ export function PhotoUpload({ invitationCode }: { invitationCode: string }) {
               type="file"
               accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
               multiple
+              className={`h-auto cursor-pointer border-dashed bg-muted/40 py-6
+                text-center file:mr-3 file:h-9 file:rounded-full file:bg-primary
+                file:px-4 file:text-primary-foreground hover:border-primary/50`}
               onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
             />
           </FormField>
@@ -72,7 +77,9 @@ export function PhotoUpload({ invitationCode }: { invitationCode: string }) {
             type="submit"
             size="lg"
             disabled={state.loading || !files.length}
+            className="max-sm:h-11"
           >
+            <ImageUpIcon data-icon="inline-start" aria-hidden />
             {state.loading ? 'Đang tải lên…' : 'Gửi ảnh'}
           </Button>
         </form>
