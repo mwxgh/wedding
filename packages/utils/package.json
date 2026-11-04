@@ -1,8 +1,9 @@
 {
-  "name": "@repo/contracts",
+  "name": "@repo/utils",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -14,17 +15,15 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
     "check-types": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint --max-warnings 0"
-  },
-  "dependencies": {
-    "@repo/db": "workspace:*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.4.1",
-    "eslint": "10.9.1",
-    "typescript": "6.0.2"
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   }
 }

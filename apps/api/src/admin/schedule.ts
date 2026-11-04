@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { type EventTiming, eventTimes, vnDay } from '@repo/contracts';
 import type { Prisma } from '@repo/db';
+import { type EventTiming, eventTimes, vnDay } from '@repo/utils';
 
 type Tx = Prisma.TransactionClient;
 

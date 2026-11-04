@@ -18,7 +18,7 @@ import type {
   PayosSyncResult,
   PublicGiftPaymentData,
   PublicGiftStatus,
-} from '@repo/contracts';
+} from '@repo/types';
 
 import { AdminGuard } from '../auth/auth.guard';
 import { GiftPaymentDto, PayosConfigDto, PayosWebhookDto } from './payos.dto';

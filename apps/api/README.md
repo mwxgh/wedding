@@ -10,5 +10,6 @@ pnpm --filter api start      # node dist/main.js
 
 Notes:
 
-- Uses TypeScript `~6.0` (not the root TS 7) because `@nestjs/cli` and `typescript-eslint` require the TS 6 API.
+- TypeScript comes from the `catalog:` in `pnpm-workspace.yaml` (TS 6: `@nestjs/cli` and `typescript-eslint` need its compiler API).
+- Prisma: `PrismaModule` / `PrismaService` / `PrismaExceptionFilter` come from `@repo/db/nest`; query shapes (`include`/`select`) live in `src/common/responses.ts`.
 - Generate code with `pnpm --filter api exec nest g resource <name>` (spec files are disabled in `nest-cli.json`).

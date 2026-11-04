@@ -1,23 +1,5 @@
 import { PartialType } from '@nestjs/mapped-types';
 
-import type {
-  AlbumInput,
-  BudgetInput,
-  EventInput,
-  ExpenseInput,
-  GiftInput,
-  GuestInput,
-  InvitationEventInput,
-  InvitationInput,
-  ModerationInput,
-  PaymentInput,
-  ScheduleInput,
-  TableInput,
-  TaskInput,
-  UpdatePhotoInput,
-  WeddingInfoInput,
-} from '@repo/contracts';
-import { DAY_PATTERN, TIME_PATTERN } from '@repo/contracts';
 import {
   GiftMethod,
   ModerationStatus,
@@ -36,9 +18,27 @@ import {
   StringField,
   UrlField,
   UuidField,
-} from '@repo/validation';
+} from '@repo/nest-common';
+import type {
+  AlbumInput,
+  BudgetInput,
+  EventInput,
+  ExpenseInput,
+  GiftInput,
+  GuestInput,
+  InvitationEventInput,
+  InvitationInput,
+  ModerationInput,
+  PaymentInput,
+  ScheduleInput,
+  TableInput,
+  TaskInput,
+  UpdatePhotoInput,
+  WeddingInfoInput,
+} from '@repo/types';
+import { DAY_PATTERN, TIME_PATTERN } from '@repo/utils';
 
-// Each DTO implements its type from @repo/contracts, so the API and the web
+// Each DTO implements its type from @repo/types, so the API and the web
 // stay in sync with one shared definition.
 
 export class WeddingInfoDto implements WeddingInfoInput {

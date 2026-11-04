@@ -22,7 +22,7 @@ import type {
   PayosChannel,
   PayosSyncResult,
   Side,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';

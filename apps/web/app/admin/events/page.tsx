@@ -4,14 +4,13 @@ import { useState } from 'react';
 
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 
-import {
-  type AdminEvent,
-  type EventInput,
-  type EventTimingInput,
-  type Side,
-  type WeddingInfoJson,
-  vnDay,
-} from '@repo/contracts';
+import type {
+  AdminEvent,
+  EventInput,
+  EventTimingInput,
+  Side,
+  WeddingInfoJson,
+} from '@repo/types';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import {
@@ -29,6 +28,7 @@ import {
   NativeSelectOption,
 } from '@repo/ui/components/native-select';
 import { toast } from '@repo/ui/components/sonner';
+import { vnDay } from '@repo/utils';
 
 import { FieldRow, FormField } from '../../_components/common';
 import { SIDE_LABEL, formatDateTime } from '../../_lib/format';

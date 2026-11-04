@@ -6,7 +6,7 @@ import type {
   Relation,
   RsvpStatus,
   Side,
-} from '@repo/contracts';
+} from '@repo/types';
 
 const TZ = 'Asia/Ho_Chi_Minh';
 

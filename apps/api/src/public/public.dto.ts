@@ -1,8 +1,3 @@
-import type {
-  GuestbookRequest,
-  RsvpItemInput,
-  RsvpRequest,
-} from '@repo/contracts';
 import { RsvpStatus } from '@repo/db';
 import {
   ClassField,
@@ -10,7 +5,8 @@ import {
   IntField,
   StringField,
   UuidField,
-} from '@repo/validation';
+} from '@repo/nest-common';
+import type { GuestbookRequest, RsvpItemInput, RsvpRequest } from '@repo/types';
 
 export class RsvpItemDto implements RsvpItemInput {
   @UuidField({ version: '7' }) eventId: string;

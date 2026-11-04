@@ -2,8 +2,14 @@
   "$schema": "https://turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
+    "build": {
+      // build runs `prisma generate --generator client` first
+      "outputs": ["dist/**", "src/generated/**"]
+    },
     "check-types": {
-      // build runs `prisma generate`; running it twice in parallel races on src/generated
+      "dependsOn": ["build"]
+    },
+    "lint": {
       "dependsOn": ["build"]
     }
   }

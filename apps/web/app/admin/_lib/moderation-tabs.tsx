@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModerationStatus } from '@repo/contracts';
+import type { ModerationStatus } from '@repo/types';
 import { Tabs, TabsList, TabsTrigger } from '@repo/ui/components/tabs';
 
 import { MODERATION_LABEL } from '../../_lib/format';

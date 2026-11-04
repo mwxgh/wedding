@@ -19,7 +19,7 @@ import type {
   PublicGiftPayment,
   PublicGiftStatus,
   Side,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Input } from '@repo/ui/components/input';
 import { Textarea } from '@repo/ui/components/textarea';

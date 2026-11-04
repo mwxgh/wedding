@@ -10,7 +10,7 @@ import {
   MessageSquareHeartIcon,
 } from 'lucide-react';
 
-import type { Dashboard, Side } from '@repo/contracts';
+import type { Dashboard, Side } from '@repo/types';
 import { buttonVariants } from '@repo/ui/components/button';
 import { CardContent } from '@repo/ui/components/card';
 import { Skeleton } from '@repo/ui/components/skeleton';

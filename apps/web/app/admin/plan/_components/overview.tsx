@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { AlertTriangleIcon, PencilIcon } from 'lucide-react';
 
-import type { PlanSummary } from '@repo/contracts';
+import type { PlanSummary } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { CardContent } from '@repo/ui/components/card';
 import { cn } from '@repo/ui/lib/utils';

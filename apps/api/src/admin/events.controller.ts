@@ -9,15 +9,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  type AdminEventData,
-  type OkResponse,
-  adminEventInclude,
-} from '@repo/contracts';
 import type { Event, Table } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { OkResponse } from '@repo/types';
 
 import { AdminGuard } from '../auth/auth.guard';
-import { PrismaService } from '../prisma/prisma.service';
+import { type AdminEventData, adminEventInclude } from '../common/responses';
 import {
   EventDto,
   TableDto,

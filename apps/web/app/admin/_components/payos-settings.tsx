@@ -9,7 +9,7 @@ import {
   Trash2Icon,
 } from 'lucide-react';
 
-import type { PayosChannel, PayosConfigInput, Side } from '@repo/contracts';
+import type { PayosChannel, PayosConfigInput, Side } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import {
   Card,

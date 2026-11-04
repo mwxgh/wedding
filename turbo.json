@@ -23,7 +23,7 @@
       "env": ["NEXT_PUBLIC_API_URL"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^build"]
     },
     "check-types": {
       "dependsOn": ["^build"]

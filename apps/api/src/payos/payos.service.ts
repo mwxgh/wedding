@@ -10,11 +10,6 @@ import {
 
 import { PayOS, type Webhook } from '@payos/node';
 
-import type {
-  PayosChannel,
-  PayosSyncResult,
-  PublicGiftPaymentData,
-} from '@repo/contracts';
 import {
   GiftMethod,
   GiftSource,
@@ -22,10 +17,15 @@ import {
   PayosStatus,
   Side,
 } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type {
+  PayosChannel,
+  PayosSyncResult,
+  PublicGiftPaymentData,
+} from '@repo/types';
 
 import { hint, open, seal } from '../common/secret-box';
 import { config } from '../config';
-import { PrismaService } from '../prisma/prisma.service';
 import type { GiftPaymentDto, PayosConfigDto } from './payos.dto';
 
 export const PAYOS_SIDES = [Side.GROOM, Side.BRIDE] as const;

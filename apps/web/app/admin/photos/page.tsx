@@ -9,7 +9,7 @@ import type {
   AdminPhoto,
   ModerationStatus,
   UpdatePhotoInput,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { ExportButton } from '@repo/ui/components/export-button';

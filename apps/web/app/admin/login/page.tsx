@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import type { LoginRequest, LoginResponse } from '@repo/contracts';
+import type { LoginRequest, LoginResponse } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import {
   Card,

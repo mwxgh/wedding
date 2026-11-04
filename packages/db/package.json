@@ -8,9 +8,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./browser": {
-      "types": "./dist/browser.d.ts",
-      "default": "./dist/browser.js"
+    "./nest": {
+      "types": "./dist/nest/index.d.ts",
+      "default": "./dist/nest/index.js"
     }
   },
   "files": [
@@ -19,29 +19,49 @@
     "prisma.config.ts"
   ],
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
+    "build": "pnpm db:generate && tsc -p tsconfig.json",
     "check-types": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint --max-warnings 0",
-    "db:generate": "prisma generate",
+    "db:generate": "prisma generate --generator client",
+    "db:types": "prisma generate --generator types",
     "db:migrate": "prisma migrate dev && prisma generate",
+    "db:push": "prisma db push && prisma generate",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma generate && prisma db seed",
-    "db:studio": "prisma studio",
-    "db:seed:demo": "prisma generate && tsx prisma/seed-demo.ts"
+    "db:check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+    "db:seed": "pnpm db:generate && prisma db seed",
+    "db:seed:demo": "pnpm db:generate && tsx prisma/seed-demo.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "7.10.0",
-    "@prisma/client": "7.10.0"
+    "@prisma/adapter-mariadb": "catalog:",
+    "@prisma/client": "catalog:"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.4.1",
-    "bcryptjs": "3.0.3",
-    "dotenv": "18.0.6",
-    "eslint": "10.9.1",
-    "prisma": "7.10.0",
-    "tsx": "4.23.13",
-    "typescript": "6.0.2"
+    "@types/node": "catalog:",
+    "bcryptjs": "catalog:",
+    "dotenv": "catalog:",
+    "eslint": "catalog:",
+    "prisma": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@prisma/generator-helper": "catalog:",
+    "reflect-metadata": "catalog:",
+    "rxjs": "catalog:"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@nestjs/common": {
+      "optional": true
+    },
+    "@nestjs/core": {
+      "optional": true
+    }
   }
 }

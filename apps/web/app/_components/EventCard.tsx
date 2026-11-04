@@ -1,6 +1,6 @@
 'use client';
 
-import type { EventJson } from '@repo/contracts';
+import type { EventJson } from '@repo/types';
 import SpotlightCard from '@repo/ui/components/reactbits/spotlight-card';
 
 import { SIDE_LABEL, formatDate, formatTime } from '../_lib/format';

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 
-import type { PublicPhoto } from '@repo/contracts';
+import type { PublicPhoto } from '@repo/types';
 import Masonry from '@repo/ui/components/reactbits/masonry';
 
 // Photos have no stored dimensions yet; vary heights for a masonry rhythm

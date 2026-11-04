@@ -16,18 +16,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 
 import {
-  type AdminAlbumData,
-  type AdminGuestbookEntryData,
-  type AdminPhotoData,
-  type DashboardData,
-  type OkResponse,
-  adminAlbumInclude,
-  adminGuestbookInclude,
-  adminPhotoInclude,
-  atVn,
-  vnDay,
-} from '@repo/contracts';
-import {
   type Album,
   type GuestbookEntry,
   ModerationStatus,
@@ -35,11 +23,21 @@ import {
   RsvpStatus,
   type WeddingInfo,
 } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { DashboardData, OkResponse } from '@repo/types';
+import { atVn, vnDay } from '@repo/utils';
 
 import { AdminGuard } from '../auth/auth.guard';
+import {
+  type AdminAlbumData,
+  type AdminGuestbookEntryData,
+  type AdminPhotoData,
+  adminAlbumInclude,
+  adminGuestbookInclude,
+  adminPhotoInclude,
+} from '../common/responses';
 import { config } from '../config';
 import { PhotoService } from '../photos/photo.service';
-import { PrismaService } from '../prisma/prisma.service';
 import {
   AlbumDto,
   ModerationDto,

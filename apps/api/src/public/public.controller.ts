@@ -11,20 +11,20 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+import { ModerationStatus, RsvpStatus } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { OkResponse } from '@repo/types';
+
 import {
-  type OkResponse,
   type PublicGalleryData,
   type PublicGuestbookEntryData,
   type PublicInvitationData,
   type PublicWeddingData,
   publicGuestbookSelect,
-} from '@repo/contracts';
-import { ModerationStatus, RsvpStatus } from '@repo/db';
-
+} from '../common/responses';
 import { config } from '../config';
 import { PayosService } from '../payos/payos.service';
 import { PhotoService } from '../photos/photo.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { GuestPhotoDto, GuestbookDto, RsvpDto } from './public.dto';
 
 @Controller('public')

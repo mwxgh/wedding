@@ -10,16 +10,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  type AdminInvitationData,
-  type OkResponse,
-  adminInvitationInclude as include,
-} from '@repo/contracts';
 import type { InvitationEvent } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { OkResponse } from '@repo/types';
 
 import { AdminGuard } from '../auth/auth.guard';
 import { generateInvitationCode } from '../common/invitation-code';
-import { PrismaService } from '../prisma/prisma.service';
+import {
+  type AdminInvitationData,
+  adminInvitationInclude as include,
+} from '../common/responses';
 import {
   InvitationDto,
   InvitationEventDto,

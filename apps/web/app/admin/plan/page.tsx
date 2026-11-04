@@ -9,7 +9,7 @@ import type {
   AdminTask,
   BudgetInput,
   PlanSummary,
-} from '@repo/contracts';
+} from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Skeleton } from '@repo/ui/components/skeleton';

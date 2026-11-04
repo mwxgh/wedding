@@ -1,11 +1,12 @@
 'use client';
 
-import { type EventTimingInput, addDays, atVn } from '@repo/contracts';
+import type { EventTimingInput } from '@repo/types';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
   NativeSelectOption,
 } from '@repo/ui/components/native-select';
+import { addDays, atVn } from '@repo/utils';
 
 import { FormField } from '../../_components/common';
 import { formatDate } from '../../_lib/format';

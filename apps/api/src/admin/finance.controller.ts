@@ -10,15 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import {
-  type AdminGiftData,
-  type OkResponse,
-  adminGiftInclude,
-} from '@repo/contracts';
 import { type Gift, GiftSource } from '@repo/db';
+import { PrismaService } from '@repo/db/nest';
+import type { OkResponse } from '@repo/types';
 
 import { AdminGuard } from '../auth/auth.guard';
-import { PrismaService } from '../prisma/prisma.service';
+import { type AdminGiftData, adminGiftInclude } from '../common/responses';
 import { GiftDto, UpdateGiftDto } from './admin.dto';
 
 const toGiftData = <T extends Partial<GiftDto>>(dto: T) => ({

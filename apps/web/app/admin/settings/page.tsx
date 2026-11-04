@@ -4,15 +4,14 @@ import { useEffect, useState } from 'react';
 
 import { CalendarHeartIcon } from 'lucide-react';
 
-import {
-  type AdminEvent,
-  type EventTimingInput,
-  type EventVenueInput,
-  type ScheduleInput,
-  type WeddingInfoInput,
-  type WeddingInfoJson,
-  vnDay,
-} from '@repo/contracts';
+import type {
+  AdminEvent,
+  EventTimingInput,
+  EventVenueInput,
+  ScheduleInput,
+  WeddingInfoInput,
+  WeddingInfoJson,
+} from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import {
   Card,
@@ -24,6 +23,7 @@ import {
 import { Input } from '@repo/ui/components/input';
 import { toast } from '@repo/ui/components/sonner';
 import { Textarea } from '@repo/ui/components/textarea';
+import { vnDay } from '@repo/utils';
 
 import { MapDialog } from '../../_components/MapDialog';
 import { FieldRow, FormField } from '../../_components/common';
