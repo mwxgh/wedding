@@ -2,7 +2,15 @@
 
 import { useState } from 'react';
 
-import { CheckIcon, EyeOffIcon, Trash2Icon } from 'lucide-react';
+import {
+  CheckIcon,
+  EyeOffIcon,
+  FolderPlusIcon,
+  ImagePlusIcon,
+  ImagesIcon,
+  Loader2Icon,
+  Trash2Icon,
+} from 'lucide-react';
 
 import type {
   AdminAlbum,
@@ -94,8 +102,10 @@ export default function PhotosAdminPage() {
       />
       <ErrorAlert error={error} />
 
-      <Card className="mb-5">
-        <CardContent className="grid gap-4 sm:grid-cols-3">
+      <Card className="mb-6">
+        <CardContent
+          className={'grid gap-5 sm:grid-cols-[1fr_1.4fr_1fr] sm:items-end'}
+        >
           <FormField label="Album">
             <NativeSelect
               className="w-full"
@@ -113,21 +123,47 @@ export default function PhotosAdminPage() {
             </NativeSelect>
           </FormField>
           <FormField label="Tải ảnh lên (tự động duyệt)">
-            <Input
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-              disabled={uploading}
-              onChange={(e) => upload(e.target.files)}
-            />
+            <div
+              className={`relative flex items-center gap-3 rounded-xl border
+                border-dashed border-primary/40 bg-secondary/40 px-3 py-1.5
+                transition-colors focus-within:border-primary
+                focus-within:ring-3 focus-within:ring-ring/30
+                hover:bg-secondary/70`}
+            >
+              <span
+                className={`grid size-8 shrink-0 place-items-center rounded-lg
+                  bg-card text-primary shadow-xs`}
+              >
+                {uploading ? (
+                  <Loader2Icon
+                    aria-hidden
+                    className="size-4 animate-spin motion-reduce:animate-none"
+                  />
+                ) : (
+                  <ImagePlusIcon aria-hidden className="size-4" />
+                )}
+              </span>
+              <Input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                disabled={uploading}
+                onChange={(e) => upload(e.target.files)}
+                className={`h-auto border-0 bg-transparent px-0 shadow-none
+                  file:mr-3 file:rounded-md file:bg-primary file:px-2.5
+                  file:text-primary-foreground focus-visible:ring-0`}
+              />
+            </div>
           </FormField>
           <FormField label="Tạo album mới">
             <div className="flex gap-2">
               <Input
                 value={newAlbum}
+                placeholder="Tên album"
                 onChange={(e) => setNewAlbum(e.target.value)}
               />
-              <Button variant="outline" onClick={createAlbum}>
+              <Button variant="outline" className="h-10" onClick={createAlbum}>
+                <FolderPlusIcon data-icon="inline-start" aria-hidden />
                 Tạo
               </Button>
             </div>
@@ -136,35 +172,48 @@ export default function PhotosAdminPage() {
       </Card>
 
       <div
-        className={'grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3'}
+        className={'grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4'}
       >
         {data?.map((p) => (
-          <Card key={p.id} className="pt-0">
-            {/* eslint-disable-next-line @next/next/no-img-element -- presigned RustFS URLs */}
-            <img
-              src={p.url}
-              alt={p.caption ?? ''}
-              loading="lazy"
-              className="aspect-square w-full object-cover"
-            />
-            <CardContent className="flex flex-col gap-2 text-xs">
-              <div>
+          <Card
+            key={p.id}
+            className={`group/photo gap-3 pt-0 transition-shadow
+            hover:shadow-lift`}
+          >
+            <div className="relative aspect-square overflow-hidden bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element -- presigned RustFS URLs */}
+              <img
+                src={p.url}
+                alt={p.caption ?? ''}
+                loading="lazy"
+                className={`size-full object-cover transition-transform
+                duration-300 group-hover/photo:scale-[1.03]
+                motion-reduce:transition-none`}
+              />
+              <div className="absolute top-2 left-2 shadow-sm">
                 <StatusBadge status={p.status}>
                   {MODERATION_LABEL[p.status]}
                 </StatusBadge>
               </div>
+            </div>
+            <CardContent className="flex flex-1 flex-col gap-2 text-xs">
               <p className="text-muted-foreground">
                 {p.invitation ? `Khách: ${p.invitation.name}` : 'Cô dâu chú rể'}
                 {p.album && ` · ${p.album.title}`}
               </p>
-              {p.caption && <p>{p.caption}</p>}
-              <div className="flex flex-wrap gap-1">
+              {p.caption && (
+                <p className="line-clamp-2 text-sm text-foreground">
+                  {p.caption}
+                </p>
+              )}
+              <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
                 {p.status !== 'APPROVED' && (
                   <Button
                     size="sm"
+                    className="max-sm:h-11"
                     onClick={() => update(p.id, { status: 'APPROVED' })}
                   >
-                    <CheckIcon data-icon="inline-start" />
+                    <CheckIcon data-icon="inline-start" aria-hidden />
                     Duyệt
                   </Button>
                 )}
@@ -172,19 +221,22 @@ export default function PhotosAdminPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="max-sm:h-11"
                     onClick={() => update(p.id, { status: 'HIDDEN' })}
                   >
-                    <EyeOffIcon data-icon="inline-start" />
+                    <EyeOffIcon data-icon="inline-start" aria-hidden />
                     Ẩn
                   </Button>
                 )}
                 <Button
                   variant="destructive"
                   size="icon-sm"
+                  className="ml-auto max-sm:size-11"
                   title="Xoá"
+                  aria-label="Xoá ảnh"
                   onClick={() => remove(p.id)}
                 >
-                  <Trash2Icon />
+                  <Trash2Icon aria-hidden />
                 </Button>
               </div>
             </CardContent>
@@ -192,7 +244,16 @@ export default function PhotosAdminPage() {
         ))}
       </div>
       {data && !data.length && (
-        <p className="text-muted-foreground">Chưa có ảnh nào.</p>
+        <div
+          className={`flex flex-col items-center gap-2 rounded-2xl border
+          border-dashed bg-card/60 px-6 py-14 text-center`}
+        >
+          <ImagesIcon aria-hidden className="size-8 text-muted-foreground" />
+          <p className="font-medium">Chưa có ảnh nào</p>
+          <p className="text-sm text-muted-foreground">
+            Tải ảnh lên ở trên hoặc chờ khách chia sẻ khoảnh khắc.
+          </p>
+        </div>
       )}
     </>
   );

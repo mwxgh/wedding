@@ -2,7 +2,14 @@
 
 import { useCallback, useState } from 'react';
 
-import { CalendarClockIcon, SparklesIcon } from 'lucide-react';
+import {
+  CalendarClockIcon,
+  LayoutDashboardIcon,
+  ListTodoIcon,
+  Loader2Icon,
+  ReceiptIcon,
+  SparklesIcon,
+} from 'lucide-react';
 
 import type {
   AdminExpense,
@@ -106,11 +113,19 @@ export default function PlanPage() {
         actions={
           <>
             <Button variant="outline" onClick={reschedule}>
-              <CalendarClockIcon data-icon="inline-start" />
+              <CalendarClockIcon data-icon="inline-start" aria-hidden />
               Tính lại hạn theo ngày cưới
             </Button>
             <Button variant="outline" onClick={seedTemplate} disabled={seeding}>
-              <SparklesIcon data-icon="inline-start" />
+              {seeding ? (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  aria-hidden
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              ) : (
+                <SparklesIcon data-icon="inline-start" aria-hidden />
+              )}
               Tạo danh sách gợi ý
             </Button>
             <ExportButton
@@ -128,22 +143,40 @@ export default function PlanPage() {
       {!ready && !error && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-36 rounded-xl" />
+            <Skeleton key={i} className="h-36 rounded-2xl" />
           ))}
         </div>
       )}
       {ready && (
         <Tabs defaultValue="overview">
-          <TabsList className="mb-4">
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
-            <TabsTrigger value="expenses">
-              Khoản chi ({expenses.data!.length})
-            </TabsTrigger>
-            <TabsTrigger value="tasks">
-              Việc cần làm ({summary.data!.tasks.done}/
-              {summary.data!.tasks.total})
-            </TabsTrigger>
-          </TabsList>
+          <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <TabsList className="max-sm:h-11">
+              <TabsTrigger value="overview">
+                <LayoutDashboardIcon aria-hidden />
+                Tổng quan
+              </TabsTrigger>
+              <TabsTrigger value="expenses">
+                <ReceiptIcon aria-hidden />
+                Khoản chi
+                <span
+                  className={`rounded-full bg-muted px-1.5 text-xs
+                  text-muted-foreground tabular-nums`}
+                >
+                  {expenses.data!.length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks">
+                <ListTodoIcon aria-hidden />
+                Việc cần làm
+                <span
+                  className={`rounded-full bg-muted px-1.5 text-xs
+                  text-muted-foreground tabular-nums`}
+                >
+                  {summary.data!.tasks.done}/{summary.data!.tasks.total}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           <TabsContent value="overview">
             <PlanOverview
               summary={summary.data!}
@@ -172,6 +205,7 @@ export default function PlanPage() {
       <FormDialog
         open={budget !== null}
         title="Ngân sách đám cưới"
+        description="Tổng số tiền dự kiến chi cho đám cưới, dùng để theo dõi phần còn lại."
         onClose={() => setBudget(null)}
         onSubmit={saveBudget}
       >

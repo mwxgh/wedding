@@ -1,19 +1,21 @@
 'use client';
 
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+
+import { FloatingHearts } from '#components/floating-hearts';
 
 type Stage = 'closed' | 'opening' | 'done';
 
 export interface EnvelopeIntroProps {
-  /** Text on the wax seal, e.g. the couple's initials. */
+  /** Mark in the round seal at the top of the card (heart, 囍, initials). */
   seal?: ReactNode;
   /** Line above the recipient, e.g. "Trân trọng kính mời". */
   greeting?: ReactNode;
   /** Who the invitation is for. */
   recipient?: ReactNode;
-  /** Content of the card that slides out of the envelope. */
+  /** Main content of the cover card (names, date, ornaments). */
   card?: ReactNode;
   /** Label of the open button. */
   openLabel?: string;
@@ -21,15 +23,21 @@ export interface EnvelopeIntroProps {
   onOpenStart?: () => void;
   /** Called once the envelope has opened and the overlay is gone. */
   onOpened?: () => void;
+  /**
+   * Open by itself after this many ms (the guest can still tap sooner).
+   * `onOpenStart` then runs without a user gesture.
+   */
+  autoOpenAfter?: number;
 }
 
 // Timeline (seconds) of the opening sequence
-const T = { seal: 0.35, flap: 0.7, card: 0.8, fade: 0.7 };
+const T = { press: 0.25, lift: 0.7, fade: 0.6 };
 
 /**
- * Full-screen wedding envelope shown on every visit (and reload). Tapping it
- * breaks the wax seal, opens the flap, slides the card up, then fades out to
- * the page, which always starts from the top.
+ * Full-screen cover shown on every visit (and reload): an ivory invitation
+ * card on a deep burgundy backdrop with drifting hearts. Opening it (tap, or
+ * `autoOpenAfter`) presses the seal, lifts the card away and fades to the
+ * page, which always starts from the top.
  */
 export function EnvelopeIntro({
   seal = '♥',
@@ -39,12 +47,13 @@ export function EnvelopeIntro({
   openLabel = 'Mở thiệp',
   onOpenStart,
   onOpened,
+  autoOpenAfter,
 }: EnvelopeIntroProps) {
   const reduceMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>('closed');
 
   // Start from the top: browsers restore the old scroll position on reload,
-  // which would land the guest mid-page once the envelope opens
+  // which would land the guest mid-page once the cover opens
   useEffect(() => {
     const previous = history.scrollRestoration;
     history.scrollRestoration = 'manual';
@@ -54,8 +63,8 @@ export function EnvelopeIntro({
     };
   }, []);
 
-  // Lock page scroll while the envelope covers it (the root element is the
-  // one that scrolls, so lock it as well as the body)
+  // Lock page scroll while the cover is up (the root element is the one that
+  // scrolls, so lock it as well as the body)
   useEffect(() => {
     if (stage === 'done') return;
     const targets = [document.documentElement, document.body];
@@ -66,13 +75,25 @@ export function EnvelopeIntro({
     };
   }, [stage]);
 
+  // guards against opening twice (tap racing the auto-open timer)
+  const started = useRef(false);
   const open = () => {
-    if (stage !== 'closed') return;
+    if (started.current) return;
+    started.current = true;
     onOpenStart?.();
     setStage('opening');
-    const total = reduceMotion ? 0.3 : T.seal + T.flap + T.card + 0.4;
+    const total = reduceMotion ? 0.2 : T.press + T.lift;
     window.setTimeout(() => setStage('done'), total * 1000);
   };
+
+  // latest open() for the timer, without restarting it on every render
+  const openRef = useRef(open);
+  openRef.current = open;
+  useEffect(() => {
+    if (autoOpenAfter == null) return;
+    const id = window.setTimeout(() => openRef.current(), autoOpenAfter);
+    return () => window.clearTimeout(id);
+  }, [autoOpenAfter]);
 
   const opening = stage === 'opening';
   const d = (s: number) => (reduceMotion ? 0 : s);
@@ -85,122 +106,77 @@ export function EnvelopeIntro({
           role="dialog"
           aria-modal="true"
           aria-label="Thiệp mời"
-          className={`fixed inset-0 z-[60] flex flex-col items-center
-          justify-center gap-8 overflow-hidden bg-background
-          bg-[radial-gradient(circle_at_30%_20%,rgb(201_169_110/0.22),transparent_50%),radial-gradient(circle_at_70%_80%,rgb(181_131_141/0.25),transparent_55%)]
-          px-4`}
-          exit={{ opacity: 0, scale: 1.08 }}
+          className={`fixed inset-0 z-[60] flex items-center justify-center
+          overflow-hidden
+          bg-[linear-gradient(160deg,color-mix(in_oklch,var(--primary),white_6%),color-mix(in_oklch,var(--primary),black_45%))]
+          px-5`}
+          exit={{ opacity: 0 }}
           transition={{ duration: d(T.fade), ease: 'easeInOut' }}
         >
-          <motion.button
-            type="button"
-            onClick={open}
-            aria-label={openLabel}
-            className={`relative aspect-[3/2] w-[min(88vw,440px)] cursor-pointer
-            outline-none [perspective:1200px]`}
-            initial={{ y: 30, opacity: 0 }}
+          <FloatingHearts />
+          <motion.div
+            className={`relative w-full max-w-md overflow-hidden rounded-md
+            bg-card px-8 pt-8 pb-9 text-center
+            shadow-[0_30px_80px_-20px_rgb(0_0_0/0.6)]`}
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={
-              opening ? { y: 80, opacity: 1 } : { y: [0, -6, 0], opacity: 1 }
+              opening
+                ? { opacity: 0, y: -40, scale: 1.03 }
+                : { opacity: 1, y: 0, scale: 1 }
             }
             transition={
               opening
-                ? { delay: d(T.seal + T.flap), duration: d(T.card) }
-                : {
-                    y: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
-                    opacity: { duration: 0.6 },
+                ? {
+                    delay: d(T.press),
+                    duration: d(T.lift),
+                    ease: [0.4, 0, 0.2, 1],
                   }
+                : { duration: d(0.8), ease: [0.22, 1, 0.36, 1] }
             }
           >
-            {/* Back of the envelope */}
-            <div
-              className={`absolute inset-0 rounded-md bg-[#e9d3c7]
-              shadow-[0_30px_60px_-20px_rgb(142_91_102/0.45)]`}
-            />
-
-            {/* The card inside */}
-            <motion.div
-              className={`absolute inset-x-[6%] top-[6%] bottom-[6%] z-10 flex
-              flex-col items-center justify-center rounded-sm bg-card px-4
-              text-center shadow-md`}
-              animate={opening ? { y: '-68%' } : { y: 0 }}
-              transition={{
-                delay: d(T.seal + T.flap),
-                duration: d(T.card),
-                ease: [0.22, 1, 0.36, 1],
-              }}
-            >
-              {card}
-            </motion.div>
-
-            {/* Front pocket: left, right and bottom folds */}
-            <div
-              className={`absolute inset-0 z-20 rounded-md bg-[#f1e0d6]
-              [clip-path:polygon(0_0,50%_55%,100%_0,100%_100%,0_100%)]`}
-            />
-            <div
-              className={`absolute inset-0 z-20 rounded-md bg-[#ead5ca]
-              [clip-path:polygon(0_100%,50%_48%,100%_100%)]`}
-            />
-
-            {/* Top flap, hinged on the top edge */}
-            <motion.div
-              className="absolute inset-x-0 top-0 h-[58%] origin-top"
-              style={{ zIndex: opening ? 5 : 30 }}
-              animate={{ rotateX: opening ? 180 : 0 }}
-              transition={{
-                delay: d(T.seal),
-                duration: d(T.flap),
-                ease: 'easeInOut',
-              }}
-            >
-              {/* One face: rotating 180° about the top edge flips it upward */}
-              <div
-                className={`absolute inset-0 bg-[#e4c9bc]
-                drop-shadow-[0_4px_6px_rgb(142_91_102/0.25)]
-                [clip-path:polygon(0_0,100%_0,50%_100%)]`}
-              />
-            </motion.div>
-
-            {/* Wax seal */}
             <motion.span
-              className={`absolute top-[58%] left-1/2 z-40 flex size-16
-              -translate-x-1/2 -translate-y-1/2 items-center justify-center
-              rounded-full bg-rose-deep font-script text-2xl text-white
-              shadow-[inset_0_-4px_8px_rgb(0_0_0/0.25),0_6px_14px_rgb(142_91_102/0.45)]
-              ring-4 ring-rose-deep/30`}
-              animate={
-                opening
-                  ? { scale: 1.6, opacity: 0, rotate: 25 }
-                  : { scale: [1, 1.06, 1] }
-              }
+              aria-hidden
+              className={`mx-auto flex size-14 items-center justify-center
+              rounded-full
+              bg-[radial-gradient(circle_at_35%_30%,color-mix(in_oklch,var(--primary),white_18%),var(--rose-deep))]
+              text-2xl text-primary-foreground
+              shadow-[0_8px_20px_-6px_rgb(0_0_0/0.5)]`}
+              animate={opening ? { scale: 0.85 } : { scale: [1, 1.05, 1] }}
               transition={
                 opening
-                  ? { duration: d(T.seal) }
-                  : { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }
+                  ? { duration: d(T.press) }
+                  : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }
               }
             >
               {seal}
             </motion.span>
-          </motion.button>
 
-          <motion.div
-            className="text-center"
-            animate={{ opacity: opening ? 0 : 1, y: opening ? 10 : 0 }}
-            transition={{ duration: d(0.4) }}
-          >
-            {greeting && <p className="text-muted-foreground">{greeting}</p>}
-            {recipient && (
-              <p className="mt-1 font-serif text-2xl text-rose-deep">
-                {recipient}
-              </p>
+            <div className="relative mt-4">{card}</div>
+
+            {(greeting || recipient) && (
+              <div className="relative mt-5">
+                {greeting && (
+                  <p className="font-serif text-lg text-muted-foreground">
+                    {greeting}
+                  </p>
+                )}
+                {recipient && (
+                  <p className="mt-0.5 font-serif text-2xl text-rose-deep">
+                    {recipient}
+                  </p>
+                )}
+              </div>
             )}
+
             <button
               type="button"
               onClick={open}
-              className={`mt-5 inline-flex cursor-pointer items-center gap-2
-              rounded-full bg-primary px-6 py-2.5 text-sm font-medium
-              text-primary-foreground shadow-soft transition-colors
-              hover:bg-rose-deep`}
+              className={`relative mt-7 inline-flex h-12 cursor-pointer
+              items-center rounded-full bg-rose-deep px-8 font-serif text-lg
+              text-primary-foreground shadow-[0_10px_24px_-10px_rgb(0_0_0/0.6)]
+              transition-[background-color,transform] outline-none
+              hover:bg-primary focus-visible:ring-3 focus-visible:ring-ring/50
+              active:scale-[0.98]`}
             >
               {openLabel}
             </button>

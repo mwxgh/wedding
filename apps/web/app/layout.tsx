@@ -3,7 +3,9 @@ import '@repo/ui/globals.css';
 import type { Metadata } from 'next';
 import {
   Be_Vietnam_Pro,
+  Cormorant_Garamond,
   Dancing_Script,
+  Noto_Serif_TC,
   Playfair_Display,
 } from 'next/font/google';
 
@@ -17,6 +19,20 @@ const sans = Be_Vietnam_Pro({
 const serif = Playfair_Display({
   subsets: ['latin', 'vietnamese'],
   variable: '--font-playfair',
+});
+// Only for the 囍 (song hỷ) glyph: not preloaded, the browser fetches just
+// the unicode-range slice that contains it
+const han = Noto_Serif_TC({
+  weight: '700',
+  preload: false,
+  variable: '--font-noto-han',
+});
+// Display serif of the invitation pages (see [data-theme='invite'])
+const display = Cormorant_Garamond({
+  subsets: ['latin', 'vietnamese'],
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
 });
 const script = Dancing_Script({
   subsets: ['latin', 'vietnamese'],
@@ -38,7 +54,8 @@ export default function RootLayout({
       <body
         suppressHydrationWarning
         className={`${sans.variable} ${serif.variable} ${script.variable}
-          overflow-x-hidden font-sans leading-relaxed antialiased`}
+          ${han.variable} ${display.variable} min-h-dvh overflow-x-hidden
+          font-sans leading-relaxed antialiased selection:bg-primary/15`}
       >
         {children}
         <Toaster theme="light" position="top-center" richColors />

@@ -3,8 +3,13 @@
 import { useMemo, useState } from 'react';
 
 import {
+  AlertTriangleIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
+  CircleDotIcon,
   PencilIcon,
   PlusIcon,
+  ReceiptIcon,
   Trash2Icon,
   WalletIcon,
   XIcon,
@@ -56,17 +61,30 @@ const paidOf = (e: AdminExpense) =>
 function ExpenseStatus({ expense }: { expense: AdminExpense }) {
   const paid = paidOf(expense);
   const est = Number(expense.estimated);
-  if (paid === 0) return <Badge variant="outline">Chưa chi</Badge>;
+  if (paid === 0)
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        <CircleDashedIcon aria-hidden />
+        Chưa chi
+      </Badge>
+    );
   if (est > 0 && paid > est)
-    return <Badge variant="destructive">Vượt dự kiến</Badge>;
+    return (
+      <Badge variant="destructive">
+        <AlertTriangleIcon aria-hidden />
+        Vượt dự kiến
+      </Badge>
+    );
   if (est > 0 && paid >= est)
     return (
-      <Badge variant="secondary" className="bg-green-50 text-green-700">
+      <Badge variant="secondary">
+        <CircleCheckIcon aria-hidden />
         Đã thanh toán đủ
       </Badge>
     );
   return (
-    <Badge variant="secondary" className="bg-amber-50 text-amber-700">
+    <Badge className="bg-accent text-accent-foreground">
+      <CircleDotIcon aria-hidden />
       Đã cọc
     </Badge>
   );
@@ -94,8 +112,8 @@ export function MoneyInput({
         required={required}
       />
       {value && Number(value) > 0 && (
-        <span className="text-xs text-muted-foreground">
-          {formatVndShort(value)} ₫
+        <span className="text-xs font-medium text-primary tabular-nums">
+          ≈ {formatVndShort(value)} ₫
         </span>
       )}
     </div>
@@ -227,15 +245,16 @@ export function ExpensesTab({
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-5 flex justify-end">
         <Button
           size="lg"
+          className="max-sm:h-11 max-sm:w-full"
           onClick={() => {
             setError(null);
             setForm(emptyExpense);
           }}
         >
-          <PlusIcon data-icon="inline-start" />
+          <PlusIcon data-icon="inline-start" aria-hidden />
           Thêm khoản chi
         </Button>
       </div>
@@ -247,9 +266,12 @@ export function ExpensesTab({
           return (
             <Card key={category}>
               <CardHeader>
-                <CardTitle>{PLAN_CATEGORY_LABEL[category]}</CardTitle>
+                <CardTitle className="font-serif text-lg">
+                  {PLAN_CATEGORY_LABEL[category]}
+                </CardTitle>
                 <CardAction
-                  className={'text-sm text-muted-foreground tabular-nums'}
+                  className={`rounded-full bg-muted px-3 py-1 text-sm
+                  text-muted-foreground tabular-nums`}
                 >
                   <span className="font-medium text-foreground">
                     {formatVndShort(paid)}
@@ -264,9 +286,9 @@ export function ExpensesTab({
                   return (
                     <div
                       key={e.id}
-                      className={`grid gap-2 border-t py-3 first:border-t-0
-                      first:pt-0 sm:grid-cols-[minmax(0,1fr)_14rem_auto]
-                      sm:items-center`}
+                      className={`-mx-2 grid gap-3 rounded-xl px-2 py-3
+                      transition-colors hover:bg-muted/40
+                      sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-center`}
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -278,7 +300,7 @@ export function ExpensesTab({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {[e.vendor, e.note].filter(Boolean).join(' · ')}
                           {e.dueDate && (
                             <>
@@ -292,12 +314,13 @@ export function ExpensesTab({
                           )}
                         </p>
                         {e.payments.length > 0 && (
-                          <ul className="mt-1 flex flex-wrap gap-1.5">
+                          <ul className="mt-2 flex flex-wrap gap-1.5">
                             {e.payments.map((pay) => (
                               <li
                                 key={pay.id}
                                 className={`inline-flex items-center gap-1
-                                rounded-full bg-muted px-2 py-0.5 text-xs`}
+                                rounded-full border bg-card py-0.5 pr-0.5 pl-2.5
+                                text-xs tabular-nums shadow-xs`}
                               >
                                 {formatVndShort(pay.amount)} ₫ ·{' '}
                                 {formatDay(pay.paidAt)}
@@ -305,11 +328,16 @@ export function ExpensesTab({
                                 <button
                                   type="button"
                                   title="Xoá lần chi"
-                                  className={`text-muted-foreground
-                                  hover:text-destructive`}
+                                  aria-label={`Xoá lần chi ${formatVndShort(pay.amount)} ₫`}
+                                  className={`grid size-6 place-items-center
+                                  rounded-full text-muted-foreground
+                                  transition-colors outline-none
+                                  hover:bg-destructive/10 hover:text-destructive
+                                  focus-visible:ring-2
+                                  focus-visible:ring-ring/50`}
                                   onClick={() => removePayment(pay.id)}
                                 >
-                                  <XIcon className="size-3" />
+                                  <XIcon aria-hidden className="size-3" />
                                 </button>
                               </li>
                             ))}
@@ -321,17 +349,20 @@ export function ExpensesTab({
                         <span
                           className={cn(
                             'text-xs tabular-nums',
-                            ex ? 'text-muted-foreground' : 'text-amber-700',
+                            ex
+                              ? 'text-muted-foreground'
+                              : 'text-accent-foreground',
                           )}
                         >
                           {formatVndShort(p)} /{' '}
                           {ex ? `${formatVndShort(ex)} ₫` : 'chưa dự kiến'}
                         </span>
                       </div>
-                      <div className="flex gap-1 sm:justify-end">
+                      <div className="flex gap-1.5 sm:justify-end">
                         <Button
                           variant="outline"
                           size="sm"
+                          className="max-sm:h-11 max-sm:flex-1"
                           onClick={() => {
                             setError(null);
                             setPayment({
@@ -342,24 +373,28 @@ export function ExpensesTab({
                             });
                           }}
                         >
-                          <WalletIcon data-icon="inline-start" />
+                          <WalletIcon data-icon="inline-start" aria-hidden />
                           Ghi chi
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon-sm"
+                          className="max-sm:size-11"
                           title="Sửa"
+                          aria-label={`Sửa khoản chi "${e.name}"`}
                           onClick={() => openEdit(e)}
                         >
-                          <PencilIcon />
+                          <PencilIcon aria-hidden />
                         </Button>
                         <Button
                           variant="destructive"
                           size="icon-sm"
+                          className="max-sm:size-11"
                           title="Xoá"
+                          aria-label={`Xoá khoản chi "${e.name}"`}
                           onClick={() => removeExpense(e)}
                         >
-                          <Trash2Icon />
+                          <Trash2Icon aria-hidden />
                         </Button>
                       </div>
                     </div>
@@ -370,7 +405,16 @@ export function ExpensesTab({
           );
         })}
         {!groups.length && (
-          <p className="text-muted-foreground">Chưa có khoản chi nào.</p>
+          <div
+            className={`flex flex-col items-center gap-2 rounded-2xl border
+            border-dashed bg-card/60 px-6 py-14 text-center`}
+          >
+            <ReceiptIcon aria-hidden className="size-8 text-muted-foreground" />
+            <p className="font-medium">Chưa có khoản chi nào</p>
+            <p className="text-sm text-muted-foreground">
+              Thêm khoản chi để theo dõi ngân sách và các lần thanh toán.
+            </p>
+          </div>
         )}
       </div>
 
@@ -454,6 +498,8 @@ export function ExpensesTab({
       <FormDialog
         open={!!payment}
         title={`Ghi chi · ${payment?.expense.name ?? ''}`}
+        description="Ghi lại một lần thanh toán (đặt cọc hoặc trả nốt)."
+        submitLabel="Ghi chi"
         error={error}
         onClose={() => setPayment(null)}
         onSubmit={savePayment}

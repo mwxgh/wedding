@@ -63,8 +63,8 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
 
   return (
     <Card className="mx-auto max-w-2xl">
-      <CardContent>
-        <form onSubmit={submit} className="flex flex-col gap-4">
+      <CardContent className="sm:px-8 sm:py-2">
+        <form onSubmit={submit} className="flex flex-col gap-5">
           {state.ok && (
             <FormAlert tone="success">
               Cảm ơn bạn đã phản hồi! Bạn có thể thay đổi bất cứ lúc nào.
@@ -82,21 +82,28 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
             return (
               <Fragment key={event.id}>
                 {i > 0 && <Separator />}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                   <div>
-                    <p className="font-semibold">{event.name}</p>
-                    <p className="text-muted-foreground">
+                    <p className="font-serif text-xl font-medium text-rose-deep">
+                      {event.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       {formatTime(event.startAt)} · {formatDate(event.startAt)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div
+                    role="group"
+                    aria-label={`Phản hồi cho ${event.name}`}
+                    className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap"
+                  >
                     {CHOICES.map((c) => (
                       <Button
                         type="button"
                         key={c}
                         size="lg"
+                        aria-pressed={r.status === c}
                         variant={r.status === c ? 'default' : 'outline'}
-                        className="rounded-full px-4"
+                        className="rounded-full px-5 max-sm:h-11 max-sm:px-2"
                         onClick={() => update(i, { status: c })}
                       >
                         {RSVP_LABEL[c]}
@@ -151,7 +158,12 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
               maxLength={1000}
             />
           </FormField>
-          <Button type="submit" size="lg" disabled={state.loading}>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={state.loading}
+            className="max-sm:h-11"
+          >
             {state.loading ? 'Đang gửi…' : 'Gửi phản hồi'}
           </Button>
         </form>

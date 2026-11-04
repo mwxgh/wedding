@@ -38,7 +38,7 @@ export function DueLabel({
           'inline-flex items-center gap-1 font-medium text-destructive'
         }
       >
-        <AlertTriangleIcon className="size-3.5" />
+        <AlertTriangleIcon aria-hidden className="size-3.5" />
         Quá hạn {-d} ngày
       </span>
     );
@@ -68,14 +68,25 @@ function Money({
 }) {
   return (
     <Panel index={index}>
-      <CardContent className="flex h-full flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
+      <CardContent className="flex h-full flex-col gap-3">
+        <div className="flex min-h-8 items-start justify-between gap-2">
+          <span
+            className={`text-xs font-medium tracking-wide text-muted-foreground
+              uppercase`}
+          >
+            {label}
+          </span>
           {action}
         </div>
-        <p className="text-3xl font-semibold tracking-tight">
+        <p
+          className={`font-serif text-3xl font-semibold tracking-tight
+            tabular-nums sm:text-4xl`}
+        >
           <Count value={value / 1e6} decimals={1} />
-          <span className="ml-1 text-base font-medium text-muted-foreground">
+          <span
+            className={`ml-1.5 font-sans text-sm font-medium
+              text-muted-foreground`}
+          >
             triệu ₫
           </span>
         </p>
@@ -116,12 +127,14 @@ export function PlanOverview({
           value={budget}
           action={
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon-sm"
+              className="rounded-full max-sm:size-11"
               title="Sửa ngân sách"
+              aria-label="Sửa ngân sách"
               onClick={onEditBudget}
             >
-              <PencilIcon />
+              <PencilIcon aria-hidden />
             </Button>
           }
           context={budget ? 'Mục tiêu tổng chi' : 'Chưa đặt ngân sách'}
@@ -137,7 +150,7 @@ export function PlanOverview({
                 className={`inline-flex items-center gap-1 font-medium
                   text-destructive`}
               >
-                <AlertTriangleIcon className="size-3.5" />
+                <AlertTriangleIcon aria-hidden className="size-3.5" />
                 Vượt ngân sách {formatVndShort(estimated - budget)} ₫
               </span>
             ) : budget ? (
@@ -173,7 +186,11 @@ export function PlanOverview({
               title="Cơ cấu chi phí"
               description="Tỷ trọng theo hạng mục"
             />
-            <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-0.5">
+            <div
+              role="group"
+              aria-label="Chọn số liệu"
+              className="flex shrink-0 gap-1 rounded-xl bg-muted p-1"
+            >
               {(
                 [
                   ['estimated', 'Dự kiến'],
@@ -183,6 +200,10 @@ export function PlanOverview({
                 <Button
                   key={key}
                   size="sm"
+                  className={cn(
+                    'rounded-lg max-sm:h-10',
+                    share === key && 'bg-card shadow-sm hover:bg-card',
+                  )}
                   variant={share === key ? 'outline' : 'ghost'}
                   aria-pressed={share === key}
                   onClick={() => setShare(key)}
@@ -221,7 +242,9 @@ export function PlanOverview({
                       className={`flex items-baseline justify-between gap-3
                         text-sm`}
                     >
-                      <span>{PLAN_CATEGORY_LABEL[c.category]}</span>
+                      <span className="font-medium">
+                        {PLAN_CATEGORY_LABEL[c.category]}
+                      </span>
                       <span className="text-muted-foreground tabular-nums">
                         <span className="font-medium text-foreground">
                           {formatVndShort(pd)}
@@ -235,7 +258,12 @@ export function PlanOverview({
               })}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Chưa có khoản chi.</p>
+            <p
+              className={`rounded-xl border border-dashed px-4 py-8 text-center
+                text-sm text-muted-foreground`}
+            >
+              Chưa có khoản chi.
+            </p>
           )}
         </CardContent>
       </Panel>
@@ -247,19 +275,24 @@ export function PlanOverview({
             description={`${t.done}/${t.total} việc đã xong`}
           />
           <Meter value={t.done} max={Math.max(1, t.total)} />
-          <div className="mt-3 flex gap-4 text-sm">
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span
               className={cn(
-                'inline-flex items-center gap-1',
+                'inline-flex items-center gap-1 rounded-full px-2.5 py-1',
                 t.overdue
-                  ? 'font-medium text-destructive'
-                  : 'text-muted-foreground',
+                  ? 'bg-destructive/10 font-medium text-destructive'
+                  : 'bg-muted text-muted-foreground',
               )}
             >
-              {t.overdue > 0 && <AlertTriangleIcon className="size-3.5" />}
+              {t.overdue > 0 && (
+                <AlertTriangleIcon aria-hidden className="size-3.5" />
+              )}
               {t.overdue} quá hạn
             </span>
-            <span className="text-muted-foreground">
+            <span
+              className={`inline-flex items-center rounded-full bg-accent px-2.5
+                py-1 text-accent-foreground`}
+            >
               {t.dueSoon} việc trong 2 tuần tới
             </span>
           </div>
@@ -268,10 +301,20 @@ export function PlanOverview({
               sm:grid-cols-2`}
           >
             {summary.upcoming.map((task) => (
-              <li key={task.id} className="grid text-sm">
-                <span className="font-medium">{task.title}</span>
-                <span className="text-xs">
-                  <DueLabel iso={task.dueDate} />
+              <li
+                key={task.id}
+                className={`flex items-start gap-3 rounded-xl px-2 py-1.5
+                text-sm transition-colors hover:bg-muted/50`}
+              >
+                <span
+                  aria-hidden
+                  className="mt-1.5 size-2 shrink-0 rounded-full bg-gold"
+                />
+                <span className="grid">
+                  <span className="font-medium">{task.title}</span>
+                  <span className="text-xs">
+                    <DueLabel iso={task.dueDate} />
+                  </span>
                 </span>
               </li>
             ))}

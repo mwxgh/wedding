@@ -53,13 +53,13 @@ function SideSplit({ bySide }: { bySide: Dashboard['bySide'] }) {
   const total = bySide.reduce((n, s) => n + s.guests, 0);
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex h-6 gap-0.5 overflow-hidden rounded-md">
+      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full">
         {bySide.map((s) => (
           <div
             key={s.side}
             title={`${SIDE_LABEL[s.side]}: ${s.guests} khách`}
             className={cn(
-              'h-full first:rounded-l-md last:rounded-r-md',
+              'h-full first:rounded-l-full last:rounded-r-full',
               SIDE_COLOR[s.side],
             )}
             style={{ width: `${(s.guests / Math.max(1, total)) * 100}%` }}
@@ -69,7 +69,10 @@ function SideSplit({ bySide }: { bySide: Dashboard['bySide'] }) {
       <ul className="grid gap-2 text-sm">
         {bySide.map((s) => (
           <li key={s.side} className="flex items-center gap-2">
-            <span className={cn('size-2.5 rounded-sm', SIDE_COLOR[s.side])} />
+            <span
+              aria-hidden
+              className={cn('size-2.5 rounded-full', SIDE_COLOR[s.side])}
+            />
             <span>{SIDE_LABEL[s.side]}</span>
             <span className="ml-auto font-medium tabular-nums">
               {s.guests} khách
@@ -98,14 +101,23 @@ function QueueLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-xl border p-3
-        transition-colors hover:bg-muted`}
+      className={`group flex min-h-12 items-center gap-3 rounded-xl border
+        bg-card p-2.5 transition-[background-color,border-color,box-shadow]
+        outline-none hover:border-primary/30 hover:bg-secondary/60
+        focus-visible:ring-3 focus-visible:ring-ring/50`}
     >
-      <Icon className="size-4 text-muted-foreground" />
-      <span className="text-sm">{label}</span>
+      <span
+        aria-hidden
+        className={`grid size-8 place-items-center rounded-lg bg-secondary
+          text-secondary-foreground`}
+      >
+        <Icon className="size-4" />
+      </span>
+      <span className="text-sm font-medium">{label}</span>
       <span
         className={cn(
-          'ml-auto rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums',
+          `ml-auto min-w-6 rounded-full px-2 py-0.5 text-center text-xs
+          font-semibold tabular-nums`,
           count
             ? 'bg-primary text-primary-foreground'
             : 'bg-muted text-muted-foreground',
@@ -113,18 +125,26 @@ function QueueLink({
       >
         {count}
       </span>
-      <ArrowRightIcon className="size-4 text-muted-foreground" />
+      <ArrowRightIcon
+        aria-hidden
+        className={`size-4 text-muted-foreground transition-transform
+          group-hover:translate-x-0.5 motion-reduce:transition-none`}
+      />
     </Link>
   );
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="grid gap-4 lg:grid-cols-12">
-      <Skeleton className="h-48 rounded-xl lg:col-span-4" />
-      <Skeleton className="h-48 rounded-xl lg:col-span-8" />
-      <Skeleton className="h-80 rounded-xl lg:col-span-8" />
-      <Skeleton className="h-80 rounded-xl lg:col-span-4" />
+    <div className="grid gap-4 md:gap-5 lg:grid-cols-12">
+      <Skeleton className="h-48 rounded-2xl lg:col-span-4" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:col-span-8">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-36 rounded-2xl" />
+        ))}
+      </div>
+      <Skeleton className="h-80 rounded-2xl lg:col-span-8" />
+      <Skeleton className="h-80 rounded-2xl lg:col-span-4" />
     </div>
   );
 }
@@ -155,15 +175,23 @@ export default function DashboardPage() {
       <ErrorAlert error={error} />
       {!data && !error && <DashboardSkeleton />}
       {data && derived && (
-        <div className="grid gap-4 lg:grid-cols-12">
+        <div className="grid gap-4 md:gap-5 lg:grid-cols-12">
           {/* hero: the one number this dashboard leads with */}
-          <Panel index={0} className="lg:col-span-4">
+          <Panel
+            index={0}
+            className={`lg:col-span-4 [&>[data-slot=card]]:bg-linear-to-br
+            [&>[data-slot=card]]:from-secondary [&>[data-slot=card]]:via-card
+            [&>[data-slot=card]]:to-accent/60`}
+          >
             <CardContent className="flex h-full flex-col gap-3">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm font-medium text-secondary-foreground">
                 Khách đã xác nhận
                 {derived.main && ` · ${derived.main.name}`}
               </span>
-              <p className="text-6xl font-semibold tracking-tight">
+              <p
+                className={`font-serif text-6xl font-semibold tracking-tight
+                text-rose-deep tabular-nums`}
+              >
                 <Count value={derived.main?.headcount ?? 0} />
               </p>
               <Meter
@@ -174,10 +202,13 @@ export default function DashboardPage() {
                 trên {data.invitations.guests} khách được mời (
                 {pct(derived.main?.headcount ?? 0, data.invitations.guests)}%)
               </p>
-              <ul className="mt-auto grid gap-1.5 border-t pt-3 text-sm">
+              <ul
+                className={`mt-auto grid gap-1.5 border-t border-foreground/10
+                pt-3 text-sm`}
+              >
                 {data.events.map((e) => (
                   <li key={e.id} className="flex justify-between gap-2">
-                    <span className="text-muted-foreground">{e.name}</span>
+                    <span className="text-foreground/75">{e.name}</span>
                     <span className="font-medium tabular-nums">
                       {e.headcount} khách
                     </span>
@@ -187,7 +218,10 @@ export default function DashboardPage() {
             </CardContent>
           </Panel>
 
-          <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:col-span-8">
+          <div
+            className={`grid min-w-0 gap-4 sm:grid-cols-2 md:gap-5
+            lg:col-span-8`}
+          >
             <StatTile
               index={1}
               label="Thiệp đã gửi"
@@ -236,7 +270,7 @@ export default function DashboardPage() {
             </CardContent>
           </Panel>
 
-          <div className="grid min-w-0 gap-4 lg:col-span-4">
+          <div className="grid min-w-0 gap-4 md:gap-5 lg:col-span-4">
             <Panel index={6}>
               <CardContent>
                 <PanelTitle
@@ -283,9 +317,13 @@ export default function DashboardPage() {
                 action={
                   <Link
                     href="/admin/events"
-                    className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+                    className={buttonVariants({
+                      variant: 'outline',
+                      size: 'sm',
+                    })}
                   >
                     Quản lý
+                    <ArrowRightIcon data-icon="inline-end" aria-hidden />
                   </Link>
                 }
               />
@@ -361,41 +399,49 @@ export default function DashboardPage() {
           <Panel index={12} className="lg:col-span-12">
             <CardContent>
               <PanelTitle title="Bảng số liệu RSVP" />
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sự kiện</TableHead>
-                    <TableHead>Thời gian</TableHead>
-                    <TableHead className="text-right">Đã mời</TableHead>
-                    <TableHead className="text-right">Tham dự</TableHead>
-                    <TableHead className="text-right">Chưa chắc</TableHead>
-                    <TableHead className="text-right">Không đến</TableHead>
-                    <TableHead className="text-right">Chưa trả lời</TableHead>
-                    <TableHead className="text-right">Số khách</TableHead>
-                    <TableHead className="text-right">Đã xếp bàn</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="tabular-nums">
-                  {data.events.map((e) => (
-                    <TableRow key={e.id}>
-                      <TableCell className="font-medium">{e.name}</TableCell>
-                      <TableCell>{formatDateTime(e.startAt)}</TableCell>
-                      <TableCell className="text-right">{e.invited}</TableCell>
-                      <TableCell className="text-right">
-                        {e.attending}
-                      </TableCell>
-                      <TableCell className="text-right">{e.maybe}</TableCell>
-                      <TableCell className="text-right">{e.declined}</TableCell>
-                      <TableCell className="text-right">{e.pending}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {e.headcount}
-                      </TableCell>
-                      <TableCell className="text-right">{e.seated}</TableCell>
+              <div className="-mx-5 overflow-x-auto border-y">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Sự kiện</TableHead>
+                      <TableHead>Thời gian</TableHead>
+                      <TableHead className="text-right">Đã mời</TableHead>
+                      <TableHead className="text-right">Tham dự</TableHead>
+                      <TableHead className="text-right">Chưa chắc</TableHead>
+                      <TableHead className="text-right">Không đến</TableHead>
+                      <TableHead className="text-right">Chưa trả lời</TableHead>
+                      <TableHead className="text-right">Số khách</TableHead>
+                      <TableHead className="text-right">Đã xếp bàn</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <p className="mt-3 text-xs text-muted-foreground">
+                  </TableHeader>
+                  <TableBody className="tabular-nums">
+                    {data.events.map((e) => (
+                      <TableRow key={e.id}>
+                        <TableCell className="font-medium">{e.name}</TableCell>
+                        <TableCell>{formatDateTime(e.startAt)}</TableCell>
+                        <TableCell className="text-right">
+                          {e.invited}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {e.attending}
+                        </TableCell>
+                        <TableCell className="text-right">{e.maybe}</TableCell>
+                        <TableCell className="text-right">
+                          {e.declined}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {e.pending}
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {e.headcount}
+                        </TableCell>
+                        <TableCell className="text-right">{e.seated}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
                 Tổng mừng cưới: {formatVnd(data.gifts.totalAmount)} ·{' '}
                 {data.gifts.count} lượt
               </p>

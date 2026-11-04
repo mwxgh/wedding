@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 
-import { motion } from 'motion/react';
+import { motion, useReducedMotion } from 'motion/react';
 
 import { Card, CardContent } from '@repo/ui/components/card';
 import CountUp from '@repo/ui/components/reactbits/count-up';
@@ -18,15 +18,20 @@ export function Panel({
   className?: string;
   children: ReactNode;
 }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
       // grid items default to min-width:auto; charts would push them wider
       className={cn('min-w-0', className)}
-      initial={{ opacity: 0, y: 14 }}
+      initial={reduce ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.06, ease: 'easeOut' }}
+      transition={{ duration: 0.45, delay: index * 0.05, ease: 'easeOut' }}
     >
-      <Card className="h-full">{children}</Card>
+      <Card
+        className={'h-full transition-shadow duration-300 hover:shadow-lift'}
+      >
+        {children}
+      </Card>
     </motion.div>
   );
 }
@@ -41,11 +46,11 @@ export function PanelTitle({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <div>
-        <h2 className="font-medium">{title}</h2>
+    <div className="mb-5 flex items-start justify-between gap-3">
+      <div className="grid gap-1">
+        <h2 className="text-base font-semibold tracking-tight">{title}</h2>
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         )}
       </div>
       {action}
@@ -76,6 +81,7 @@ export function Meter({
   className?: string;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const reduce = useReducedMotion();
   return (
     <div
       role="meter"
@@ -83,13 +89,13 @@ export function Meter({
       aria-valuemin={0}
       aria-valuemax={max}
       className={cn(
-        'h-2 overflow-hidden rounded-full bg-chart-1/15',
+        'h-2 overflow-hidden rounded-full bg-chart-1/12',
         className,
       )}
     >
       <motion.div
         className="h-full rounded-full bg-chart-1"
-        initial={{ width: 0 }}
+        initial={reduce ? false : { width: 0 }}
         animate={{ width: `${pct}%` }}
         transition={{ duration: 1, ease: 'easeOut' }}
       />
@@ -159,10 +165,12 @@ export function StatTile({
     <Panel index={index}>
       <CardContent className="flex h-full flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <span className="text-sm text-muted-foreground">{label}</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            {label}
+          </span>
           {trend && <Sparkline values={trend} />}
         </div>
-        <p className="text-3xl font-semibold tracking-tight">
+        <p className="text-3xl font-semibold tracking-tight tabular-nums">
           <Count value={value} decimals={decimals} />
           {suffix && (
             <span className="ml-1 text-base font-medium text-muted-foreground">

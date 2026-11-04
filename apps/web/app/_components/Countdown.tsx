@@ -25,15 +25,16 @@ export function Countdown({ target }: { target: string }) {
   if (diff === 0) return null;
 
   return (
-    <div className="mt-8 flex justify-center gap-3">
+    <div className="mt-10 flex justify-center gap-2.5 sm:gap-4">
       {UNITS.map(([label, ms]) => {
         const value = Math.floor(diff / ms);
         diff -= value * ms;
         return (
           <div
             key={label}
-            className={`flex min-w-18 flex-col items-center rounded-2xl border
-            bg-card px-2 py-3 shadow-soft`}
+            className={`flex min-w-16 flex-col items-center gap-1 rounded-2xl
+            border border-border/70 bg-card/80 px-2 py-3 shadow-soft
+            backdrop-blur-md sm:min-w-20 sm:py-4`}
           >
             <Counter
               value={value}
@@ -47,7 +48,12 @@ export function Countdown({ target }: { target: string }) {
               gradientHeight={8}
               counterStyle={{ fontFamily: 'var(--font-playfair), serif' }}
             />
-            <span className="text-xs text-muted-foreground">{label}</span>
+            <span
+              className={`text-[11px] font-medium tracking-[0.18em]
+              text-muted-foreground uppercase`}
+            >
+              {label}
+            </span>
           </div>
         );
       })}

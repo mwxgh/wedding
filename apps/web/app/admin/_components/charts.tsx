@@ -93,7 +93,11 @@ export function ActivityChart({
   return (
     <ChartContainer config={activityConfig} className="aspect-auto h-64 w-full">
       <LineChart data={data} margin={{ top: 8, right: 36, bottom: 0, left: 0 }}>
-        <CartesianGrid vertical={false} stroke="var(--border)" />
+        <CartesianGrid
+          vertical={false}
+          stroke="var(--border)"
+          strokeDasharray="3 4"
+        />
         <XAxis
           dataKey="date"
           tickLine={false}

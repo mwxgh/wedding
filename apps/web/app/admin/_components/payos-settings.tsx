@@ -6,7 +6,9 @@ import {
   CheckCircle2Icon,
   CircleDashedIcon,
   KeyRoundIcon,
+  Loader2Icon,
   Trash2Icon,
+  WebhookIcon,
 } from 'lucide-react';
 
 import type { PayosChannel, PayosConfigInput, Side } from '@repo/types';
@@ -48,11 +50,16 @@ export function PayosSettings() {
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 font-serif text-xl">
-          <KeyRoundIcon className="size-5 text-primary" />
+        <CardTitle className="flex items-center gap-3 font-serif text-xl">
+          <span
+            className={`grid size-9 place-items-center rounded-xl bg-secondary
+              text-primary`}
+          >
+            <KeyRoundIcon aria-hidden className="size-5" />
+          </span>
           Thanh toán payOS
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="max-w-prose">
           Mỗi bên một kênh payOS (một tài khoản ngân hàng nhận tiền mừng). Lấy
           Client ID, API key và Checksum key ở my.payos.vn → Kênh thanh toán.
           Key được mã hoá trước khi lưu và không hiển thị lại.
@@ -130,23 +137,32 @@ function ChannelForm({
   return (
     <form
       onSubmit={save}
-      className="grid content-start gap-3 rounded-xl border p-4"
+      className={`grid content-start gap-4 rounded-2xl border bg-muted/30 p-4
+        sm:p-5`}
     >
       <div className="flex items-center justify-between gap-2">
-        <strong>{SIDE_LABEL[c.side]}</strong>
+        <strong className="font-serif text-lg font-medium">
+          {SIDE_LABEL[c.side]}
+        </strong>
         {c.configured ? (
           <span
-            className={'inline-flex items-center gap-1 text-sm text-rose-deep'}
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5
+              py-1 text-xs font-medium ${
+                c.enabled
+                  ? 'bg-secondary text-secondary-foreground'
+                  : 'bg-muted text-muted-foreground'
+              }`}
           >
-            <CheckCircle2Icon className="size-4" />
+            <CheckCircle2Icon aria-hidden className="size-3.5" />
             {c.enabled ? 'Đang nhận mừng' : 'Đã tắt'}
           </span>
         ) : (
           <span
-            className={`inline-flex items-center gap-1 text-sm
+            className={`inline-flex items-center gap-1.5 rounded-full border
+              border-dashed px-2.5 py-1 text-xs font-medium
               text-muted-foreground`}
           >
-            <CircleDashedIcon className="size-4" /> Chưa cấu hình
+            <CircleDashedIcon aria-hidden className="size-3.5" /> Chưa cấu hình
           </span>
         )}
       </div>
@@ -180,13 +196,20 @@ function ChannelForm({
         />
       </FormField>
       {c.configured && (!c.apiKeyHint || !c.checksumKeyHint) && (
-        <p className="text-sm text-destructive">
+        <p
+          role="alert"
+          className={`rounded-xl bg-destructive/10 px-3 py-2 text-sm
+          text-destructive`}
+        >
           Không giải mã được key đã lưu (SETTINGS_SECRET đã đổi?). Hãy nhập lại
           cả hai key.
         </p>
       )}
 
-      <label className="flex items-center gap-2.5 text-sm">
+      <label
+        className={`flex cursor-pointer items-center gap-3 rounded-xl border
+          bg-card px-3 py-2.5 text-sm`}
+      >
         <Switch
           checked={draft.enabled}
           onCheckedChange={(enabled) => set({ enabled })}
@@ -195,20 +218,38 @@ function ChannelForm({
       </label>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={busy === 'save'}>
-          Lưu
-        </Button>
-        {c.configured && (
-          <Button type="button" variant="ghost" onClick={remove}>
-            <Trash2Icon data-icon="inline-start" />
-            Xoá
-          </Button>
-        )}
         {c.updatedAt && (
-          <span className="ml-auto text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Cập nhật {formatDateTime(c.updatedAt)}
           </span>
         )}
+        <div className="ml-auto flex gap-2">
+          {c.configured && (
+            <Button
+              type="button"
+              variant="destructive"
+              className="max-sm:h-11"
+              onClick={remove}
+            >
+              <Trash2Icon data-icon="inline-start" aria-hidden />
+              Xoá
+            </Button>
+          )}
+          <Button
+            type="submit"
+            className="max-sm:h-11"
+            disabled={busy === 'save'}
+          >
+            {busy === 'save' && (
+              <Loader2Icon
+                data-icon="inline-start"
+                aria-hidden
+                className="animate-spin motion-reduce:animate-none"
+              />
+            )}
+            Lưu
+          </Button>
+        </div>
       </div>
 
       {c.configured && (
@@ -222,9 +263,19 @@ function ChannelForm({
             <Button
               type="button"
               variant="outline"
+              className="h-10"
               disabled={busy === 'webhook'}
               onClick={() => confirmWebhook(c.side)}
             >
+              {busy === 'webhook' ? (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  aria-hidden
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              ) : (
+                <WebhookIcon data-icon="inline-start" aria-hidden />
+              )}
               Đăng ký
             </Button>
           </div>

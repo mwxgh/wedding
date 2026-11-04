@@ -30,7 +30,7 @@ export interface LoveCursorProps {
   maxParticles?: number;
 }
 
-const DEFAULT_COLORS = ['#b5838d', '#e8a0b4', '#f4c2c2', '#c9a96e', '#8e5b66'];
+const DEFAULT_COLORS = ['#3f6b55', '#9dbba8', '#e9dfcc', '#b8945a', '#2f5242'];
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T,>(items: readonly T[]) =>
@@ -167,7 +167,7 @@ export function LoveCursor({
       const roll = Math.random();
       spawn(x, y, {
         shape: roll < 0.55 ? 'heart' : roll < 0.85 ? 'petal' : 'sparkle',
-        color: roll >= 0.85 ? '#c9a96e' : pick(colors),
+        color: roll >= 0.85 ? '#b8945a' : pick(colors),
       });
       wake();
     };

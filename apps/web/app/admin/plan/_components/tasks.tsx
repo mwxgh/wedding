@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { ListTodoIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 
 import type {
   AdminExpense,
@@ -155,15 +155,16 @@ export function TasksTab({
 
   return (
     <>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-5 flex justify-end">
         <Button
           size="lg"
+          className="max-sm:h-11 max-sm:w-full"
           onClick={() => {
             setError(null);
             setForm(emptyTask);
           }}
         >
-          <PlusIcon data-icon="inline-start" />
+          <PlusIcon data-icon="inline-start" aria-hidden />
           Thêm việc
         </Button>
       </div>
@@ -172,28 +173,51 @@ export function TasksTab({
         {GROUPS.filter((g) => grouped.get(g.key)?.length).map((g) => {
           const items = grouped.get(g.key)!;
           return (
-            <Card key={g.key}>
+            <Card
+              key={g.key}
+              className={cn(
+                g.key === 'overdue' && 'ring-destructive/25',
+                g.key === 'done' && 'bg-card/70',
+              )}
+            >
               <CardHeader>
                 <CardTitle
-                  className={cn(g.key === 'overdue' && 'text-destructive')}
+                  className={cn(
+                    'flex items-center gap-2',
+                    g.key === 'overdue' && 'text-destructive',
+                  )}
                 >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      'size-2 rounded-full',
+                      g.key === 'overdue' && 'bg-destructive',
+                      g.key === 'soon' && 'bg-gold',
+                      g.key === 'later' && 'bg-primary',
+                      g.key === 'undated' && 'bg-muted-foreground/50',
+                      g.key === 'done' && 'bg-primary/40',
+                    )}
+                  />
                   {g.title}
                 </CardTitle>
-                <CardAction className="text-sm text-muted-foreground">
-                  {items.length} việc
+                <CardAction>
+                  <Badge variant="secondary" className="tabular-nums">
+                    {items.length} việc
+                  </Badge>
                 </CardAction>
               </CardHeader>
-              <CardContent className="grid">
+              <CardContent className="grid gap-1">
                 {items.map((t) => {
                   const done = pending[t.id] ?? !!t.doneAt;
                   return (
                     <div
                       key={t.id}
-                      className={`flex items-start gap-3 border-t py-2.5
-                      first:border-t-0 first:pt-0`}
+                      className={`group/task -mx-2 flex items-start gap-3
+                      rounded-xl px-2 py-2.5 transition-colors
+                      hover:bg-muted/50`}
                     >
                       <Checkbox
-                        className="mt-0.5"
+                        className="mt-0.5 size-5"
                         checked={done}
                         aria-label={`Đánh dấu "${t.title}" đã xong`}
                         onCheckedChange={(v) => toggle(t, v)}
@@ -201,14 +225,14 @@ export function TasksTab({
                       <div className="min-w-0 flex-1">
                         <p
                           className={cn(
-                            'font-medium',
+                            'font-medium transition-colors',
                             done && 'text-muted-foreground line-through',
                           )}
                         >
                           {t.title}
                         </p>
                         <p
-                          className={`flex flex-wrap items-center gap-x-2
+                          className={`mt-1 flex flex-wrap items-center gap-x-2
                           gap-y-1 text-xs`}
                         >
                           <Badge variant="outline">
@@ -238,7 +262,9 @@ export function TasksTab({
                       <Button
                         variant="ghost"
                         size="icon-sm"
+                        className="max-sm:size-11"
                         title="Sửa"
+                        aria-label={`Sửa việc "${t.title}"`}
                         onClick={() => {
                           setError(null);
                           setForm({
@@ -252,15 +278,17 @@ export function TasksTab({
                           });
                         }}
                       >
-                        <PencilIcon />
+                        <PencilIcon aria-hidden />
                       </Button>
                       <Button
                         variant="destructive"
                         size="icon-sm"
+                        className="max-sm:size-11"
                         title="Xoá"
+                        aria-label={`Xoá việc "${t.title}"`}
                         onClick={() => remove(t)}
                       >
-                        <Trash2Icon />
+                        <Trash2Icon aria-hidden />
                       </Button>
                     </div>
                   );
@@ -270,13 +298,26 @@ export function TasksTab({
           );
         })}
         {!tasks.length && (
-          <p className="text-muted-foreground">Chưa có việc nào.</p>
+          <div
+            className={`flex flex-col items-center gap-2 rounded-2xl border
+            border-dashed bg-card/60 px-6 py-14 text-center`}
+          >
+            <ListTodoIcon
+              aria-hidden
+              className="size-8 text-muted-foreground"
+            />
+            <p className="font-medium">Chưa có việc nào</p>
+            <p className="text-sm text-muted-foreground">
+              Thêm việc hoặc tạo danh sách gợi ý để bắt đầu.
+            </p>
+          </div>
         )}
       </div>
 
       <FormDialog
         open={!!form}
         title={form?.id ? 'Sửa việc' : 'Thêm việc'}
+        description="Đặt hạn và người phụ trách để dễ theo dõi tiến độ."
         error={error}
         onClose={() => setForm(null)}
         onSubmit={save}

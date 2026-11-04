@@ -19,7 +19,7 @@ export function ModerationTabs({
         onChange(v === 'ALL' ? '' : (v as ModerationStatus))
       }
     >
-      <TabsList>
+      <TabsList className="max-w-full [scrollbar-width:none] overflow-x-auto">
         <TabsTrigger value="ALL">Tất cả</TabsTrigger>
         {Object.entries(MODERATION_LABEL).map(([v, l]) => (
           <TabsTrigger key={v} value={v}>
