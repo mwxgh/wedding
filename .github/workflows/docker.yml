@@ -5,16 +5,28 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One deploy at a time; a newer push waits instead of racing the older one
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: write
+
+env:
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  DOMAIN: maitinh-nguyenhanh.love
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [api, web]
+        include:
+          - { image: api, file: api, target: runner }
+          - { image: migrate, file: api, target: migrate }
+          - { image: web, file: web, target: runner }
     steps:
       - uses: actions/checkout@v7
 
@@ -29,7 +41,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository }}-${{ matrix.app }}
+          images: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
           tags: |
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
@@ -37,9 +49,71 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
-          file: deploy/${{ matrix.app }}.Dockerfile
+          file: deploy/${{ matrix.file }}.Dockerfile
+          target: ${{ matrix.target }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.${{ env.DOMAIN }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          cache-from: type=gha,scope=${{ matrix.file }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://${{ env.DOMAIN }}
+    env:
+      TAG: sha-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: deploy
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+
+      - name: Upload compose files
+        run: |
+          scp deploy/docker-compose.prod.yml deploy/Caddyfile \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/root/wedding/"
+
+      - name: Pull, migrate and restart
+        run: |
+          # The job token can read this repo's packages; it is only used for
+          # this pull and expires when the job ends.
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            TAG='${{ env.TAG }}' IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
+            GHCR_USER='${{ github.actor }}' GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' \
+            bash -s <<'EOF'
+          set -euo pipefail
+          cd /root/wedding
+          C="docker compose -p wedding -f docker-compose.prod.yml --env-file .env.prod"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          $C --profile tools pull --quiet api web migrate
+          docker logout ghcr.io
+          $C run --rm migrate
+          $C up -d --remove-orphans
+          # Remember the release so a manual `up -d` keeps running it
+          sed -i "s|^IMAGE_PREFIX=.*|IMAGE_PREFIX=$IMAGE_PREFIX|; s|^TAG=.*|TAG=$TAG|" .env.prod
+          grep -q '^IMAGE_PREFIX=' .env.prod || echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> .env.prod
+          docker image prune -f >/dev/null
+          EOF
+
+      - name: Smoke test
+        run: |
+          for url in "https://${DOMAIN}/" "https://api.${DOMAIN}/public/wedding"; do
+            for i in $(seq 1 20); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$url" || true)
+              [ "$code" = 200 ] && echo "$url -> 200" && continue 2
+              sleep 3
+            done
+            echo "$url failed (last status $code)"; exit 1
+          done
