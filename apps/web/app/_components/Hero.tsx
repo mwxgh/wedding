@@ -45,7 +45,12 @@ export function Hero({
   // tap, click or key press instead (SoundToggle respects a saved mute).
   useEffect(() => {
     const events = ['pointerdown', 'keydown', 'touchend'] as const;
-    const start = () => {
+    const start = (e: Event) => {
+      // A tap on the music button is handled by the button itself; starting
+      // here too would make its click pause the music right away.
+      if ((e.target as Element | null)?.closest?.('[data-sound-toggle]')) {
+        return;
+      }
       requestSoundPlay();
       events.forEach((e) => window.removeEventListener(e, start));
     };

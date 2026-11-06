@@ -67,6 +67,9 @@ export function SoundToggle({
     const onRequest = () => {
       if (!readMuted()) void play();
     };
+    // Music is on by default: try right away. Browsers that block autoplay
+    // reject this, and playback then starts on the first gesture instead.
+    onRequest();
     window.addEventListener(SOUND_PLAY_EVENT, onRequest);
     return () => window.removeEventListener(SOUND_PLAY_EVENT, onRequest);
     // play only depends on refs and stable setters
@@ -97,27 +100,47 @@ export function SoundToggle({
       <button
         type="button"
         onClick={toggle}
+        data-sound-toggle
         aria-pressed={playing}
-        aria-label={playing ? 'Tắt nhạc' : 'Bật nhạc'}
+        aria-label="Nhạc nền"
+        title={playing ? 'Tắt nhạc' : 'Bật nhạc'}
         className={cn(
-          `fixed top-4 right-4 z-[55] inline-flex h-11 items-center gap-2
-          rounded-full border border-border/70 bg-card/75 px-4 text-[11px]
-          font-medium tracking-[0.2em] text-foreground uppercase shadow-soft
-          backdrop-blur-md transition-colors outline-none hover:bg-card
-          focus-visible:ring-3 focus-visible:ring-ring/50`,
+          `group fixed top-4 right-4 z-55 grid size-11 cursor-pointer
+          touch-manipulation place-items-center rounded-full border
+          border-border/70 bg-card/75 shadow-soft backdrop-blur-md
+          transition-[background-color,transform] duration-200 outline-none
+          hover:bg-card focus-visible:ring-3 focus-visible:ring-ring/50
+          active:scale-95 motion-reduce:transition-none
+          motion-reduce:active:scale-100`,
+          playing && 'border-primary/40',
           className,
         )}
       >
-        {playing ? (
-          <Music2Icon
+        {/* Soft ripple while music plays */}
+        {playing && (
+          <span
             aria-hidden
-            className={`size-4 animate-pulse text-primary
-              motion-reduce:animate-none`}
+            className={`pointer-events-none absolute inset-0 animate-ping
+            rounded-full border border-primary/40 [animation-duration:2.4s]
+            motion-reduce:hidden`}
           />
-        ) : (
-          <VolumeXIcon aria-hidden className="size-4 text-muted-foreground" />
         )}
-        {playing ? 'Sound on' : 'Sound off'}
+        <Music2Icon
+          aria-hidden
+          className={cn(
+            `col-start-1 row-start-1 size-[18px] text-primary transition-all
+            duration-200`,
+            playing ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
+          )}
+        />
+        <VolumeXIcon
+          aria-hidden
+          className={cn(
+            `col-start-1 row-start-1 size-[18px] text-muted-foreground
+            transition-all duration-200`,
+            playing ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
+          )}
+        />
       </button>
     </>
   );
