@@ -105,7 +105,7 @@ export function MoneyInput({
       <Input
         type="number"
         min={0}
-        step={100000}
+        step={1000}
         inputMode="numeric"
         value={value}
         onChange={(e) => onChange(e.target.value)}
