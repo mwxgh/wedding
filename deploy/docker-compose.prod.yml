@@ -1,0 +1,120 @@
+# Production stack for a single small VPS (1 vCPU / 2 GB): MySQL, RustFS,
+# api, web and Caddy (automatic HTTPS). Redis and phpMyAdmin are left out.
+# Usage (on the server, in the deploy directory):
+#   cp .env.prod.example .env.prod   # fill it in
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+
+x-common: &common
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  mysql:
+    <<: *common
+    image: mysql:8.4
+    mem_limit: 512m
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?required}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wedding}
+      MYSQL_USER: ${MYSQL_USER:-wedding}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?required}
+      TZ: Asia/Ho_Chi_Minh
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  rustfs:
+    <<: *common
+    image: rustfs/rustfs:${RUSTFS_VERSION:-latest}
+    mem_limit: 256m
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?required}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?required}
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: ':9000'
+      RUSTFS_CONSOLE_ENABLE: 'false'
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - rustfs-data:/data
+
+  api:
+    <<: *common
+    image: ${IMAGE_PREFIX:-wedding}-api:${TAG:-latest}
+    mem_limit: 320m
+    depends_on:
+      mysql: { condition: service_healthy }
+      rustfs: { condition: service_started }
+    environment:
+      PORT: 3001
+      WEB_ORIGIN: https://${DOMAIN:?required}
+      PUBLIC_SITE_URL: https://${DOMAIN}
+      DATABASE_URL: mysql://${MYSQL_USER:-wedding}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-wedding}
+      JWT_SECRET: ${JWT_SECRET:?required}
+      JWT_EXPIRES_IN: 7d
+      # Presigned photo URLs must point at the public host; requests from the
+      # api reach it through Caddy on this machine (see extra_hosts).
+      S3_ENDPOINT: https://s3.${DOMAIN}
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: ${RUSTFS_ACCESS_KEY}
+      S3_SECRET_KEY: ${RUSTFS_SECRET_KEY}
+      S3_BUCKET: wedding
+      UPLOAD_MAX_MB: 15
+      SETTINGS_SECRET: ${SETTINGS_SECRET:?required}
+      PAYOS_TTL_MINUTES: 15
+      NODE_OPTIONS: --max-old-space-size=256
+    extra_hosts:
+      - s3.${DOMAIN}:host-gateway
+
+  web:
+    <<: *common
+    image: ${IMAGE_PREFIX:-wedding}-web:${TAG:-latest}
+    mem_limit: 320m
+    depends_on: [api]
+    environment:
+      # Server-side calls go straight to the api container
+      API_URL: http://api:3001
+      NODE_OPTIONS: --max-old-space-size=256
+
+  # Applies pending Prisma migrations, then exits:
+  #   docker compose ... run --rm migrate
+  migrate:
+    image: ${IMAGE_PREFIX:-wedding}-migrate:${TAG:-latest}
+    profiles: [tools]
+    depends_on:
+      mysql: { condition: service_healthy }
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-wedding}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-wedding}
+
+  caddy:
+    <<: *common
+    image: caddy:2-alpine
+    mem_limit: 96m
+    depends_on: [web, api, rustfs]
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  mysql-data:
+  rustfs-data:
+  caddy-data:
+  caddy-config:

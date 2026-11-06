@@ -25,7 +25,12 @@ RUN pnpm turbo run build --filter=api
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm --filter=api deploy --prod --legacy /prod/api
 
-# --- Runtime
+# --- One-off database migrations (`--target migrate`); has the Prisma CLI
+FROM builder AS migrate
+WORKDIR /app/packages/db
+CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
+
+# --- Runtime (default target, keep it last)
 FROM node:${NODE_VERSION} AS runner
 WORKDIR /app
 ENV NODE_ENV=production

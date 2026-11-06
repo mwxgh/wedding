@@ -1,0 +1,16 @@
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+api.{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy api:3001
+}
+
+s3.{$DOMAIN} {
+	reverse_proxy rustfs:9000
+}
