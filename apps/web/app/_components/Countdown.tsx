@@ -20,18 +20,31 @@ export function Countdown({ target }: { target: string }) {
     return () => clearInterval(id);
   }, []);
 
-  if (now === null) return null;
+  // same-size placeholder until mounted, so the hero does not jump
+  if (now === null) {
+    return <div aria-hidden className="mt-10 h-[78px] sm:h-[86px]" />;
+  }
   let diff = Math.max(0, new Date(target).getTime() - now);
   if (diff === 0) return null;
 
+  // Screen readers get one stable sentence (minutes, not seconds); the
+  // rolling digits (10 spans per place) are hidden from them
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+
   return (
     <div className="mt-10 flex justify-center gap-2.5 sm:gap-4">
+      <p className="sr-only">
+        Còn {days} ngày {hours} giờ {minutes} phút đến ngày cưới
+      </p>
       {UNITS.map(([label, ms]) => {
         const value = Math.floor(diff / ms);
         diff -= value * ms;
         return (
           <div
             key={label}
+            aria-hidden
             className={`flex min-w-16 flex-col items-center gap-1 rounded-2xl
             border border-border/70 bg-card/80 px-2 py-3 shadow-soft
             backdrop-blur-md sm:min-w-20 sm:py-4`}
@@ -49,7 +62,7 @@ export function Countdown({ target }: { target: string }) {
               counterStyle={{ fontFamily: 'var(--font-playfair), serif' }}
             />
             <span
-              className={`text-[11px] font-medium tracking-[0.18em]
+              className={`text-xs font-medium tracking-[0.15em]
               text-muted-foreground uppercase`}
             >
               {label}

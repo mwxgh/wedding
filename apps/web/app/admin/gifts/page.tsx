@@ -29,6 +29,8 @@ import type {
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
+import { Empty } from '@repo/ui/components/empty';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
@@ -54,9 +56,10 @@ import {
   formatVnd,
 } from '../../_lib/format';
 import { Count, Panel } from '../_components/stats';
+import { useQueryParam, useRunner, useSetQuery } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { giftSheets } from '../_lib/exports';
-import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
+import { ErrorAlert, FormDialog, ListSkeleton, PageHeader } from '../_lib/ui';
 
 interface GiftForm {
   id?: string;
@@ -98,8 +101,14 @@ export default function GiftsPage() {
   );
   const [form, setForm] = useState<GiftForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [source, setSource] = useState<'' | GiftSource>('');
-  const [side, setSide] = useState<'' | Side>('');
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
+  const [sourceParam, setSource] = useQueryParam('source');
+  const [sideParam, setSide] = useQueryParam('side');
+  const source = (sourceParam ?? '') as '' | GiftSource;
+  const side = (sideParam ?? '') as '' | Side;
+  const filtered = !!(source || side);
+  const setQuery = useSetQuery();
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
@@ -155,9 +164,24 @@ export default function GiftsPage() {
   }
 
   async function remove(g: AdminGift) {
-    if (!confirm(`Xoá bản ghi mừng cưới của "${g.giverName}"?`)) return;
-    await api(`/admin/gifts/${g.id}`, { method: 'DELETE' });
-    await reload();
+    if (
+      !(await confirm({
+        title: `Xoá bản ghi mừng cưới của "${g.giverName}"?`,
+        description:
+          g.source === 'PAYOS'
+            ? 'Khoản này do payOS xác nhận. Xoá bản ghi không hoàn tiền cho khách.'
+            : 'Không thể hoàn tác.',
+      }))
+    )
+      return;
+    await run(
+      g.id,
+      async () => {
+        await api(`/admin/gifts/${g.id}`, { method: 'DELETE' });
+        await reload();
+      },
+      'Đã xoá bản ghi mừng cưới',
+    );
   }
 
   async function sync() {
@@ -239,7 +263,7 @@ export default function GiftsPage() {
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reload} />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map((t, i) => (
@@ -282,7 +306,7 @@ export default function GiftsPage() {
           className="w-full sm:w-auto"
           aria-label="Nguồn"
           value={source}
-          onChange={(e) => setSource(e.target.value as GiftSource | '')}
+          onChange={(e) => setSource(e.target.value || null)}
         >
           <NativeSelectOption value="">Mọi nguồn</NativeSelectOption>
           <NativeSelectOption value="PAYOS">payOS</NativeSelectOption>
@@ -292,7 +316,7 @@ export default function GiftsPage() {
           className="w-full sm:w-auto"
           aria-label="Bên nhận"
           value={side}
-          onChange={(e) => setSide(e.target.value as Side | '')}
+          onChange={(e) => setSide(e.target.value || null)}
         >
           <NativeSelectOption value="">Cả hai bên</NativeSelectOption>
           <NativeSelectOption value="GROOM">Nhà trai</NativeSelectOption>
@@ -306,7 +330,8 @@ export default function GiftsPage() {
         </p>
       </div>
 
-      <Card className="py-0">
+      {!data && !error && <ListSkeleton />}
+      <Card className={data ? 'py-0' : 'hidden'}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -412,6 +437,7 @@ export default function GiftsPage() {
                       className="max-sm:size-11"
                       title="Xoá"
                       aria-label={`Xoá khoản mừng của ${g.giverName}`}
+                      disabled={isBusy(g.id)}
                       onClick={() => remove(g)}
                     >
                       <Trash2Icon />
@@ -422,24 +448,29 @@ export default function GiftsPage() {
             ))}
             {data && !list.length && (
               <TableRow>
-                <TableCell colSpan={6} className="py-14">
-                  <div
-                    className={`flex flex-col items-center gap-2 text-center
-                    text-muted-foreground`}
-                  >
-                    <span
-                      className={`grid size-12 place-items-center rounded-full
-                      bg-accent text-accent-foreground`}
-                    >
-                      <GiftIcon aria-hidden className="size-5" />
-                    </span>
-                    <p className="font-medium text-foreground">
-                      Chưa có bản ghi nào
-                    </p>
-                    <p className="text-sm">
-                      Bấm “Ghi nhận” để thêm khoản mừng đầu tiên.
-                    </p>
-                  </div>
+                <TableCell colSpan={6} className="whitespace-normal">
+                  {filtered && gifts.length ? (
+                    <Empty
+                      bare
+                      icon={<GiftIcon />}
+                      title="Không có khoản mừng nào khớp bộ lọc"
+                      action={
+                        <Button
+                          variant="outline"
+                          onClick={() => setQuery({ source: null, side: null })}
+                        >
+                          Xoá bộ lọc
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <Empty
+                      bare
+                      icon={<GiftIcon />}
+                      title="Chưa có bản ghi nào"
+                      description="Bấm “Ghi nhận” để thêm khoản mừng đầu tiên."
+                    />
+                  )}
                 </TableCell>
               </TableRow>
             )}
@@ -475,6 +506,7 @@ export default function GiftsPage() {
         title={form?.id ? 'Sửa mừng cưới' : 'Ghi nhận mừng cưới'}
         description="Tiền mặt, chuyển khoản hoặc quà hiện vật."
         error={formError}
+        value={form}
         onClose={() => setForm(null)}
         onSubmit={save}
       >

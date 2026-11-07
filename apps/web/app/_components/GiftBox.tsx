@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   CheckIcon,
   ClockIcon,
   CopyIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   GiftIcon,
   HeartIcon,
@@ -45,6 +46,10 @@ const shortVnd = (n: number) =>
   n >= 1_000_000
     ? `${new Intl.NumberFormat('vi-VN').format(n / 1_000_000)} triệu`
     : `${n / 1_000}k`;
+
+// QR modules: the invite theme's --foreground (an SVG fill attribute and the
+// saved PNG cannot resolve CSS variables)
+const QR_INK = '#3a1218';
 
 // heart in the middle of the QR, cut out so the code stays scannable
 const HEART =
@@ -333,11 +338,18 @@ export function GiftBox({
                           exit={{ height: 0, opacity: 0 }}
                           className="overflow-hidden"
                         >
-                          <div className="relative pt-1">
+                          <label
+                            htmlFor="gift-custom"
+                            className={`mt-1 mb-1.5 block text-sm
+                            text-muted-foreground`}
+                          >
+                            Số tiền khác (đồng)
+                          </label>
+                          <div className="relative">
                             <Input
+                              id="gift-custom"
                               inputMode="numeric"
                               autoFocus
-                              aria-label="Số tiền khác"
                               placeholder="Nhập số tiền"
                               className="h-11 pr-10 text-base tabular-nums"
                               value={
@@ -373,6 +385,7 @@ export function GiftBox({
                       onChange={(e) => setGiverName(e.target.value)}
                       required
                       maxLength={100}
+                      autoComplete="name"
                       placeholder="Để cô dâu chú rể biết ai đã gửi"
                     />
                   </FormField>
@@ -542,6 +555,55 @@ function QrStep({
 }) {
   const reduce = useReducedMotion();
   const left = useCountdown(payment.expiresAt);
+  const qrRef = useRef<HTMLDivElement>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  // Guests often pay from the phone showing the invite, which cannot scan
+  // its own screen: save the QR as an image their bank app can import
+  async function saveQr() {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) return;
+    setSaveFailed(false);
+    const name = `ma-qr-mung-cuoi-${payment.amount}`;
+    const download = (href: string, ext: string) => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.download = `${name}.${ext}`;
+      a.click();
+    };
+    try {
+      const xml = new XMLSerializer().serializeToString(svg);
+      const svgUrl = URL.createObjectURL(
+        new Blob([xml], { type: 'image/svg+xml' }),
+      );
+      try {
+        const img = new Image();
+        img.src = svgUrl;
+        await img.decode();
+        const size = 720;
+        const pad = 48;
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size + pad * 2;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, pad, pad, size, size);
+        const png = await new Promise<Blob | null>((r) =>
+          canvas.toBlob(r, 'image/png'),
+        );
+        if (!png) throw new Error('toBlob');
+        const pngUrl = URL.createObjectURL(png);
+        download(pngUrl, 'png');
+        setTimeout(() => URL.revokeObjectURL(pngUrl), 1000);
+      } catch {
+        // canvas unavailable (some in-app browsers): fall back to the SVG
+        download(svgUrl, 'svg');
+      }
+      setTimeout(() => URL.revokeObjectURL(svgUrl), 1000);
+    } catch {
+      setSaveFailed(true);
+    }
+  }
   const mm = String(Math.floor(left / 60_000)).padStart(2, '0');
   const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, '0');
 
@@ -599,6 +661,7 @@ function QrStep({
           />
         ))}
         <div
+          ref={qrRef}
           className={`relative rounded-2xl bg-white p-3 shadow-soft ring-1
             ring-foreground/[0.06]`}
         >
@@ -606,7 +669,7 @@ function QrStep({
             value={payment.qrCode}
             size={208}
             level="M"
-            fgColor="#1e2a24"
+            fgColor={QR_INK}
             imageSettings={{
               src: HEART,
               height: 40,
@@ -633,7 +696,6 @@ function QrStep({
       </div>
 
       <div
-        role="status"
         className={`flex items-center gap-2 rounded-full bg-secondary px-3.5
           py-1.5 text-sm font-medium text-secondary-foreground`}
       >
@@ -646,8 +708,9 @@ function QrStep({
             className={'relative inline-flex size-2.5 rounded-full bg-primary'}
           />
         </span>
-        Đang chờ chuyển khoản
-        <span className="font-normal tabular-nums opacity-80">
+        {/* only the stable text is live; the ticking timer is not announced */}
+        <span role="status">Đang chờ chuyển khoản</span>
+        <span aria-hidden className="font-normal tabular-nums opacity-80">
           · còn {mm}:{ss}
         </span>
       </div>
@@ -666,7 +729,22 @@ function QrStep({
         <Row label="Nội dung" value={payment.description} copy />
       </dl>
 
-      <div className="grid w-full gap-2 sm:flex sm:justify-center">
+      <div className="grid w-full gap-2 sm:flex sm:flex-wrap sm:justify-center">
+        <Button
+          variant="outline"
+          size="lg"
+          onClick={saveQr}
+          className="max-sm:h-11 sm:order-3"
+        >
+          <DownloadIcon data-icon="inline-start" aria-hidden />
+          Lưu ảnh mã QR
+        </Button>
+        {saveFailed && (
+          <p role="alert" className="text-sm text-destructive sm:order-4">
+            Không lưu được ảnh. Hãy chụp màn hình mã QR hoặc sao chép số tài
+            khoản bên trên.
+          </p>
+        )}
         <a
           href={payment.checkoutUrl}
           target="_blank"
@@ -704,11 +782,12 @@ function Row({
   copy?: boolean | string;
 }) {
   const [done, setDone] = useState(false);
+  const [failed, setFailed] = useState(false);
   return (
     <div className="flex min-h-12 items-center justify-between gap-3 py-1.5">
       <dt className="shrink-0 text-muted-foreground">{label}</dt>
       <dd className="flex min-w-0 items-center gap-1 font-medium">
-        <span className="truncate tabular-nums" title={value}>
+        <span className="truncate tabular-nums select-all" title={value}>
           {value}
         </span>
         {copy && (
@@ -726,14 +805,23 @@ function Row({
               focus-visible:ring-ring/50`,
               done
                 ? 'text-rose-deep'
-                : 'text-muted-foreground hover:bg-card hover:text-foreground',
+                : failed
+                  ? 'text-destructive'
+                  : 'text-muted-foreground hover:bg-card hover:text-foreground',
             )}
             onClick={async () => {
-              await navigator.clipboard.writeText(
-                typeof copy === 'string' ? copy : value,
-              );
-              setDone(true);
-              setTimeout(() => setDone(false), 1500);
+              try {
+                await navigator.clipboard.writeText(
+                  typeof copy === 'string' ? copy : value,
+                );
+                setFailed(false);
+                setDone(true);
+                setTimeout(() => setDone(false), 1500);
+              } catch {
+                // in-app browsers may block the clipboard
+                setFailed(true);
+                setTimeout(() => setFailed(false), 2500);
+              }
             }}
           >
             {done ? (
@@ -745,7 +833,11 @@ function Row({
         )}
         {copy && (
           <span role="status" className="sr-only">
-            {done ? `Đã sao chép ${label.toLowerCase()}` : ''}
+            {done
+              ? `Đã sao chép ${label.toLowerCase()}`
+              : failed
+                ? 'Không sao chép được, hãy nhấn giữ để chọn'
+                : ''}
           </span>
         )}
       </dd>

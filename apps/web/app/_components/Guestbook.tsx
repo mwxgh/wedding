@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { QuoteIcon, SendIcon } from 'lucide-react';
 
@@ -29,6 +29,7 @@ export function Guestbook({
     error?: string;
     loading?: boolean;
   }>({});
+  const statusRef = useRef<HTMLDivElement>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +45,12 @@ export function Guestbook({
     } catch (err) {
       setState({ error: (err as Error).message });
     }
+    requestAnimationFrame(() =>
+      statusRef.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      }),
+    );
   }
 
   return (
@@ -51,8 +58,6 @@ export function Guestbook({
       <Card className="mx-auto max-w-2xl">
         <CardContent className="sm:px-8 sm:py-2">
           <form onSubmit={submit} className="flex flex-col gap-4">
-            {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
-            {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
             <FormField label="Tên của bạn" htmlFor="gb-name">
               <Input
                 id="gb-name"
@@ -60,6 +65,7 @@ export function Guestbook({
                 onChange={(e) => setAuthorName(e.target.value)}
                 required
                 maxLength={100}
+                autoComplete="name"
               />
             </FormField>
             <FormField label="Lời chúc" htmlFor="gb-message">
@@ -72,6 +78,13 @@ export function Guestbook({
                 className="min-h-28"
               />
             </FormField>
+            <div
+              ref={statusRef}
+              className="flex scroll-mb-24 flex-col gap-3 empty:hidden"
+            >
+              {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
+              {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
+            </div>
             <Button
               type="submit"
               size="lg"

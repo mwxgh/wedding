@@ -1588,7 +1588,12 @@ const FlexCarousel = ({
           </span>
         </div>
       )}
-      <div className="sr-only" aria-live="polite" aria-atomic="true">
+      {/* not announced while autoplay advances it on its own */}
+      <div
+        className="sr-only"
+        aria-live={autoplay ? 'off' : 'polite'}
+        aria-atomic="true"
+      >
         {`${label}, ${active + 1} trên ${list.length}`}
       </div>
     </div>

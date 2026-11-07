@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import dynamic from 'next/dynamic';
 
+import { PauseIcon, PlayIcon } from 'lucide-react';
+import { useReducedMotion } from 'motion/react';
+
 import type { PublicPhoto } from '@repo/types';
 import { cn } from '@repo/ui/lib/utils';
 
@@ -57,7 +60,11 @@ function SnapCarousel({ photos }: { photos: PublicPhoto[] }) {
     });
 
   return (
-    <div>
+    // same height as the WebGL album box, so switching modes does not jump
+    <div
+      className={`flex min-h-[max(24rem,62svh)] flex-col justify-center
+        lg:min-h-[78vh]`}
+    >
       <div
         ref={scroller}
         role="region"
@@ -86,13 +93,16 @@ function SnapCarousel({ photos }: { photos: PublicPhoto[] }) {
               src={p.url}
               alt={p.caption ?? `Ảnh cưới ${i + 1}`}
               loading={i < 2 ? 'eager' : 'lazy'}
+              decoding="async"
+              width={600}
+              height={800}
               className="aspect-[3/4] w-full object-cover"
             />
           </figure>
         ))}
       </div>
       {photos.length > 1 && (
-        <div className="flex flex-wrap justify-center gap-1">
+        <div className="flex flex-wrap justify-center gap-1.5">
           {photos.map((p, i) => (
             <button
               key={p.id}
@@ -100,7 +110,7 @@ function SnapCarousel({ photos }: { photos: PublicPhoto[] }) {
               onClick={() => go(i)}
               aria-label={`Xem ảnh ${i + 1}`}
               aria-current={i === active}
-              className={`flex size-6 items-center justify-center rounded-full
+              className={`flex size-8 items-center justify-center rounded-full
               outline-none focus-visible:ring-2 focus-visible:ring-ring/50`}
             >
               <span
@@ -123,8 +133,13 @@ const FlexCarousel = dynamic(
   { ssr: false },
 );
 
-/** How many photos to probe before trusting the WebGL album. */
-const PROBE = 3;
+/**
+ * Photos probed before trusting the WebGL album (they share one host, so one
+ * tells whether it sends CORS headers), and how long to wait for it before
+ * showing the plain carousel instead of an empty box.
+ */
+const PROBE = 1;
+const PROBE_TIMEOUT_MS = 4_000;
 
 /**
  * True when this browser can run the WebGL album: WebGL2 is available and the
@@ -145,7 +160,13 @@ async function canUseWebGl(photos: PublicPhoto[]): Promise<boolean> {
         img.src = p.url;
       }),
   );
-  return (await Promise.all(probes)).every(Boolean);
+  const timeout = new Promise<boolean>((resolve) =>
+    setTimeout(() => resolve(false), PROBE_TIMEOUT_MS),
+  );
+  return Promise.race([
+    Promise.all(probes).then((ok) => ok.every(Boolean)),
+    timeout,
+  ]);
 }
 
 /**
@@ -155,6 +176,10 @@ async function canUseWebGl(photos: PublicPhoto[]): Promise<boolean> {
  */
 export function Gallery({ photos }: { photos: PublicPhoto[] }) {
   const [mode, setMode] = useState<'checking' | 'webgl' | 'basic'>('checking');
+  // autoplay needs a visible pause control (WCAG 2.2.2); reduced motion
+  // already stops it inside the carousel
+  const [paused, setPaused] = useState(false);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     let alive = true;
@@ -170,7 +195,30 @@ export function Gallery({ photos }: { photos: PublicPhoto[] }) {
 
   return (
     // full-bleed; same box while checking, so the page does not jump
-    <div className="mx-[calc(50%-50vw)] h-[62svh] min-h-96 lg:h-[78vh]">
+    <div
+      className={
+        'relative mx-[calc(50%-50vw)] h-[max(24rem,62svh)] lg:h-[78vh]'
+      }
+    >
+      {mode === 'webgl' && !reduce && (
+        <button
+          type="button"
+          onClick={() => setPaused((p) => !p)}
+          aria-label={
+            paused ? 'Tiếp tục tự chuyển ảnh' : 'Tạm dừng tự chuyển ảnh'
+          }
+          className={`absolute right-4 bottom-4 z-10 grid size-11
+          place-items-center rounded-full border border-border/70 bg-card/80
+          text-rose-deep shadow-soft backdrop-blur-md outline-none
+          focus-visible:ring-3 focus-visible:ring-ring/50`}
+        >
+          {paused ? (
+            <PlayIcon aria-hidden className="size-4" />
+          ) : (
+            <PauseIcon aria-hidden className="size-4" />
+          )}
+        </button>
+      )}
       {mode === 'webgl' && (
         <FlexCarousel
           items={photos.map((p, i) => ({
@@ -181,7 +229,7 @@ export function Gallery({ photos }: { photos: PublicPhoto[] }) {
           ariaLabel="Album ảnh cưới"
           preset="liquid"
           dispersion={0.25}
-          autoplay
+          autoplay={!paused}
           interval={4.5}
           captureWheel={false}
           className="text-rose-deep"

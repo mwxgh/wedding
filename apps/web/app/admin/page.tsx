@@ -195,6 +195,7 @@ export default function DashboardPage() {
                 <Count value={derived.main?.headcount ?? 0} />
               </p>
               <Meter
+                label="Khách đã xác nhận"
                 value={derived.main?.headcount ?? 0}
                 max={data.invitations.guests}
               />
@@ -284,13 +285,13 @@ export default function DashboardPage() {
               <CardContent className="flex flex-col gap-2">
                 <PanelTitle title="Chờ duyệt" />
                 <QueueLink
-                  href="/admin/guestbook"
+                  href="/admin/guestbook?status=PENDING"
                   icon={MessageSquareHeartIcon}
                   label="Lời chúc"
                   count={data.guestbookPending}
                 />
                 <QueueLink
-                  href="/admin/photos"
+                  href="/admin/photos?status=PENDING"
                   icon={ImageIcon}
                   label="Ảnh của khách"
                   count={data.photosPending}
@@ -339,7 +340,11 @@ export default function DashboardPage() {
                         {e.seated}/{e.headcount} khách
                       </span>
                     </div>
-                    <Meter value={e.seated} max={Math.max(1, e.headcount)} />
+                    <Meter
+                      label={`Đã xếp bàn ${e.name}`}
+                      value={e.seated}
+                      max={Math.max(1, e.headcount)}
+                    />
                     <p className="text-xs text-muted-foreground">
                       {e.capacity
                         ? `${e.capacity} chỗ ở các bàn · còn trống ${Math.max(0, e.capacity - e.seated)}`

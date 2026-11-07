@@ -2,9 +2,10 @@
 
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
-import { Loader2Icon } from 'lucide-react';
+import { Loader2Icon, RotateCwIcon } from 'lucide-react';
 
 import { Button } from '@repo/ui/components/button';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
 import {
   Dialog,
   DialogBody,
@@ -14,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@repo/ui/components/dialog';
+import { Skeleton } from '@repo/ui/components/skeleton';
 
 import { FormAlert } from '../../_components/common';
 
@@ -42,15 +44,50 @@ export function PageHeader({
   );
 }
 
-export function ErrorAlert({ error }: { error: string | null | undefined }) {
-  return error ? <FormAlert tone="error">{error}</FormAlert> : null;
+export function ErrorAlert({
+  error,
+  onRetry,
+}: {
+  error: string | null | undefined;
+  /** Shows a "Thử lại" button, e.g. the `reload` of `useAdminData`. */
+  onRetry?: () => void;
+}) {
+  if (!error) return null;
+  return (
+    <div className="mb-4 flex flex-col gap-2">
+      <FormAlert tone="error">{error}</FormAlert>
+      {onRetry && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="self-start max-sm:h-11"
+          onClick={onRetry}
+        >
+          <RotateCwIcon data-icon="inline-start" aria-hidden />
+          Thử lại
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** Placeholder rows while a list loads. */
+export function ListSkeleton({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="grid gap-3" role="status" aria-busy aria-label="Đang tải…">
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-20 rounded-2xl" />
+      ))}
+    </div>
+  );
 }
 
 /**
  * Dialog wrapping a form with Cancel / Save actions.
  * Header and footer stay pinned while the fields scroll; the submit button
  * shows a pending state while an async `onSubmit` runs, and errors are
- * scrolled into view when they appear.
+ * scrolled into view when they appear. Pass the form state as `value` to
+ * ask before closing (Esc, backdrop, Huỷ) with unsaved changes.
  */
 export function FormDialog({
   open,
@@ -60,6 +97,7 @@ export function FormDialog({
   submitLabel = 'Lưu',
   onClose,
   onSubmit,
+  value,
   children,
 }: {
   open: boolean;
@@ -69,10 +107,35 @@ export function FormDialog({
   submitLabel?: string;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void | Promise<void>;
+  /** Current form state; compared with its value when the dialog opened. */
+  value?: unknown;
   children: ReactNode;
 }) {
   const [pending, setPending] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
+  const confirm = useConfirm();
+  const initial = useRef<string | null>(null);
+  const current = JSON.stringify(value ?? null);
+
+  useEffect(() => {
+    initial.current = open ? (initial.current ?? current) : null;
+  }, [open, current]);
+
+  async function requestClose() {
+    if (pending) return;
+    const dirty = initial.current !== null && initial.current !== current;
+    if (
+      dirty &&
+      !(await confirm({
+        title: 'Bỏ các thay đổi chưa lưu?',
+        description: 'Những gì bạn vừa nhập sẽ không được lưu.',
+        confirmLabel: 'Bỏ thay đổi',
+        cancelLabel: 'Tiếp tục sửa',
+      }))
+    )
+      return;
+    onClose();
+  }
 
   useEffect(() => {
     if (error) errorRef.current?.scrollIntoView({ block: 'nearest' });
@@ -92,7 +155,7 @@ export function FormDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !pending && onClose()}>
+    <Dialog open={open} onOpenChange={(o) => !o && void requestClose()}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">{title}</DialogTitle>
@@ -115,7 +178,7 @@ export function FormDialog({
               variant="outline"
               size="lg"
               className="max-sm:h-11"
-              onClick={onClose}
+              onClick={() => void requestClose()}
               disabled={pending}
             >
               Huỷ

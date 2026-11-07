@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense, useEffect, useRef } from 'react';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -17,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { buttonVariants } from '@repo/ui/components/button';
+import { ConfirmProvider } from '@repo/ui/components/confirm-dialog';
 import { cn } from '@repo/ui/lib/utils';
 
 import { AuthProvider, useAuth } from './_lib/auth';
@@ -35,6 +38,15 @@ const NAV = [
 function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { ready, token, logout } = useAuth();
+  const navRef = useRef<HTMLElement>(null);
+
+  // the mobile nav scrolls sideways: keep the current page's link in view
+  useEffect(() => {
+    if (!window.matchMedia('(max-width: 767px)').matches) return;
+    navRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [pathname, ready, token]);
 
   if (pathname === '/admin/login') return <>{children}</>;
   if (!ready || !token) return null;
@@ -85,6 +97,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav
+          ref={navRef}
           aria-label="Quản trị"
           className={`flex [scrollbar-width:none] gap-1 overflow-x-auto px-3
             pb-3 md:flex-1 md:flex-col md:overflow-x-visible md:overflow-y-auto
@@ -174,7 +187,12 @@ export default function AdminLayout({
 }) {
   return (
     <AuthProvider>
-      <Shell>{children}</Shell>
+      <ConfirmProvider>
+        <Shell>
+          {/* pages read filters/tabs from the URL (useSearchParams) */}
+          <Suspense>{children}</Suspense>
+        </Shell>
+      </ConfirmProvider>
     </AuthProvider>
   );
 }

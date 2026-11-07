@@ -31,6 +31,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
+import { Empty } from '@repo/ui/components/empty';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -50,6 +52,7 @@ import {
   toDateInput,
 } from '../../../_lib/format';
 import { Meter } from '../../_components/stats';
+import { useRunner, useUndoableDelete } from '../../_lib/actions';
 import { useAuth } from '../../_lib/auth';
 import { FormDialog } from '../../_lib/ui';
 import { DueLabel } from './overview';
@@ -92,10 +95,13 @@ function ExpenseStatus({ expense }: { expense: AdminExpense }) {
 
 /** VND number input with a readable echo (e.g. "150 tr ₫"). */
 export function MoneyInput({
+  id,
   value,
   onChange,
   required,
 }: {
+  /** Put the same id in the FormField's `htmlFor`. */
+  id?: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
@@ -103,6 +109,7 @@ export function MoneyInput({
   return (
     <div className="grid gap-1">
       <Input
+        id={id}
         type="number"
         min={0}
         step={1000}
@@ -159,14 +166,24 @@ export function ExpensesTab({
   const [form, setForm] = useState<ExpenseForm | null>(null);
   const [payment, setPayment] = useState<PaymentForm | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
+  const { hidden: hiddenPayments, schedule: removePayment } = useUndoableDelete(
+    (id) => api(`/admin/plan/payments/${id}`, { method: 'DELETE' }),
+    reload,
+  );
 
   const groups = useMemo(() => {
     const map = new Map<PlanCategory, AdminExpense[]>();
     for (const e of expenses) {
-      map.set(e.category, [...(map.get(e.category) ?? []), e]);
+      const visible = {
+        ...e,
+        payments: e.payments.filter((p) => !hiddenPayments.has(p.id)),
+      };
+      map.set(e.category, [...(map.get(e.category) ?? []), visible]);
     }
     return [...map.entries()];
-  }, [expenses]);
+  }, [expenses, hiddenPayments]);
 
   const set = (patch: Partial<ExpenseForm>) =>
     setForm((f) => (f ? { ...f, ...patch } : f));
@@ -218,15 +235,23 @@ export function ExpensesTab({
   }
 
   async function removeExpense(e: AdminExpense) {
-    if (!confirm(`Xoá khoản chi "${e.name}" và các lần chi của nó?`)) return;
-    await api(`/admin/plan/expenses/${e.id}`, { method: 'DELETE' });
-    await reload();
-  }
-
-  async function removePayment(id: string) {
-    if (!confirm('Xoá lần chi này?')) return;
-    await api(`/admin/plan/payments/${id}`, { method: 'DELETE' });
-    await reload();
+    if (
+      !(await confirm({
+        title: `Xoá khoản chi "${e.name}"?`,
+        description: e.payments.length
+          ? `Cả ${e.payments.length} lần chi đã ghi cũng bị xoá. Không thể hoàn tác.`
+          : 'Không thể hoàn tác.',
+      }))
+    )
+      return;
+    await run(
+      e.id,
+      async () => {
+        await api(`/admin/plan/expenses/${e.id}`, { method: 'DELETE' });
+        await reload();
+      },
+      'Đã xoá khoản chi',
+    );
   }
 
   const openEdit = (e: AdminExpense) => {
@@ -329,13 +354,20 @@ export function ExpensesTab({
                                   type="button"
                                   title="Xoá lần chi"
                                   aria-label={`Xoá lần chi ${formatVndShort(pay.amount)} ₫`}
-                                  className={`grid size-6 place-items-center
-                                  rounded-full text-muted-foreground
-                                  transition-colors outline-none
+                                  className={`relative grid size-6
+                                  place-items-center rounded-full
+                                  text-muted-foreground transition-colors
+                                  outline-none after:absolute after:-inset-2.5
                                   hover:bg-destructive/10 hover:text-destructive
                                   focus-visible:ring-2
-                                  focus-visible:ring-ring/50`}
-                                  onClick={() => removePayment(pay.id)}
+                                  focus-visible:ring-ring/50 max-sm:size-8
+                                  max-sm:after:-inset-1.5`}
+                                  onClick={() =>
+                                    removePayment(
+                                      pay.id,
+                                      `Đã xoá lần chi ${formatVndShort(pay.amount)} ₫`,
+                                    )
+                                  }
                                 >
                                   <XIcon aria-hidden className="size-3" />
                                 </button>
@@ -345,7 +377,11 @@ export function ExpensesTab({
                         )}
                       </div>
                       <div className="grid gap-1">
-                        <Meter value={p} max={Math.max(1, ex, p)} />
+                        <Meter
+                          label={`Đã chi cho ${e.name}`}
+                          value={p}
+                          max={Math.max(1, ex, p)}
+                        />
                         <span
                           className={cn(
                             'text-xs tabular-nums',
@@ -392,6 +428,7 @@ export function ExpensesTab({
                           className="max-sm:size-11"
                           title="Xoá"
                           aria-label={`Xoá khoản chi "${e.name}"`}
+                          disabled={isBusy(e.id)}
                           onClick={() => removeExpense(e)}
                         >
                           <Trash2Icon aria-hidden />
@@ -405,16 +442,11 @@ export function ExpensesTab({
           );
         })}
         {!groups.length && (
-          <div
-            className={`flex flex-col items-center gap-2 rounded-2xl border
-            border-dashed bg-card/60 px-6 py-14 text-center`}
-          >
-            <ReceiptIcon aria-hidden className="size-8 text-muted-foreground" />
-            <p className="font-medium">Chưa có khoản chi nào</p>
-            <p className="text-sm text-muted-foreground">
-              Thêm khoản chi để theo dõi ngân sách và các lần thanh toán.
-            </p>
-          </div>
+          <Empty
+            icon={<ReceiptIcon />}
+            title="Chưa có khoản chi nào"
+            description="Thêm khoản chi để theo dõi ngân sách và các lần thanh toán."
+          />
         )}
       </div>
 
@@ -422,6 +454,7 @@ export function ExpensesTab({
         open={!!form}
         title={form?.id ? 'Sửa khoản chi' : 'Thêm khoản chi'}
         error={error}
+        value={form}
         onClose={() => setForm(null)}
         onSubmit={saveExpense}
       >
@@ -471,8 +504,9 @@ export function ExpensesTab({
               />
             </FormField>
             <FieldRow>
-              <FormField label="Dự kiến (VND)">
+              <FormField label="Dự kiến (VND)" htmlFor="expense-estimated">
                 <MoneyInput
+                  id="expense-estimated"
                   value={form.estimated}
                   onChange={(v) => set({ estimated: v })}
                 />
@@ -501,14 +535,16 @@ export function ExpensesTab({
         description="Ghi lại một lần thanh toán (đặt cọc hoặc trả nốt)."
         submitLabel="Ghi chi"
         error={error}
+        value={payment && { ...payment, expense: payment.expense.id }}
         onClose={() => setPayment(null)}
         onSubmit={savePayment}
       >
         {payment && (
           <>
             <FieldRow>
-              <FormField label="Số tiền (VND)">
+              <FormField label="Số tiền (VND)" htmlFor="payment-amount">
                 <MoneyInput
+                  id="payment-amount"
                   value={payment.amount}
                   onChange={(v) => setPayment({ ...payment, amount: v })}
                   required

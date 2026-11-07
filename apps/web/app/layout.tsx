@@ -16,9 +16,11 @@ const sans = Be_Vietnam_Pro({
   weight: ['300', '400', '500', '600'],
   variable: '--font-be-vietnam',
 });
+// Admin serif; the invitation swaps it for Cormorant, so don't preload it
 const serif = Playfair_Display({
   subsets: ['latin', 'vietnamese'],
   variable: '--font-playfair',
+  preload: false,
 });
 // Only for the 囍 (song hỷ) glyph: not preloaded, the browser fetches just
 // the unicode-range slice that contains it
@@ -34,9 +36,11 @@ const display = Cormorant_Garamond({
   style: ['normal', 'italic'],
   variable: '--font-cormorant',
 });
+// Only used by the 404 and admin pages: not preloaded on the invitation
 const script = Dancing_Script({
   subsets: ['latin', 'vietnamese'],
   variable: '--font-dancing',
+  preload: false,
 });
 
 export const metadata: Metadata = {

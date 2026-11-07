@@ -21,6 +21,8 @@ import {
   CardTitle,
 } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
+import { Empty } from '@repo/ui/components/empty';
 import { Input } from '@repo/ui/components/input';
 import {
   NativeSelect,
@@ -38,6 +40,7 @@ import {
   fromDateInput,
   toDateInput,
 } from '../../../_lib/format';
+import { useRunner } from '../../_lib/actions';
 import { useAuth } from '../../_lib/auth';
 import { FormDialog } from '../../_lib/ui';
 import { DueLabel } from './overview';
@@ -93,6 +96,8 @@ export function TasksTab({
   const [error, setError] = useState<string | null>(null);
   // optimistic check state while the request is in flight
   const [pending, setPending] = useState<Record<string, boolean>>({});
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
 
   const grouped = useMemo(() => {
     const map = new Map<Group, AdminTask[]>();
@@ -148,9 +153,21 @@ export function TasksTab({
   }
 
   async function remove(t: AdminTask) {
-    if (!confirm(`Xoá việc "${t.title}"?`)) return;
-    await api(`/admin/plan/tasks/${t.id}`, { method: 'DELETE' });
-    await reload();
+    if (
+      !(await confirm({
+        title: `Xoá việc "${t.title}"?`,
+        description: 'Không thể hoàn tác.',
+      }))
+    )
+      return;
+    await run(
+      t.id,
+      async () => {
+        await api(`/admin/plan/tasks/${t.id}`, { method: 'DELETE' });
+        await reload();
+      },
+      'Đã xoá việc',
+    );
   }
 
   return (
@@ -286,6 +303,7 @@ export function TasksTab({
                         className="max-sm:size-11"
                         title="Xoá"
                         aria-label={`Xoá việc "${t.title}"`}
+                        disabled={isBusy(t.id)}
                         onClick={() => remove(t)}
                       >
                         <Trash2Icon aria-hidden />
@@ -298,19 +316,11 @@ export function TasksTab({
           );
         })}
         {!tasks.length && (
-          <div
-            className={`flex flex-col items-center gap-2 rounded-2xl border
-            border-dashed bg-card/60 px-6 py-14 text-center`}
-          >
-            <ListTodoIcon
-              aria-hidden
-              className="size-8 text-muted-foreground"
-            />
-            <p className="font-medium">Chưa có việc nào</p>
-            <p className="text-sm text-muted-foreground">
-              Thêm việc hoặc tạo danh sách gợi ý để bắt đầu.
-            </p>
-          </div>
+          <Empty
+            icon={<ListTodoIcon />}
+            title="Chưa có việc nào"
+            description="Thêm việc hoặc tạo danh sách gợi ý để bắt đầu."
+          />
         )}
       </div>
 
@@ -319,6 +329,7 @@ export function TasksTab({
         title={form?.id ? 'Sửa việc' : 'Thêm việc'}
         description="Đặt hạn và người phụ trách để dễ theo dõi tiến độ."
         error={error}
+        value={form}
         onClose={() => setForm(null)}
         onSubmit={save}
       >

@@ -20,6 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
 import { Input } from '@repo/ui/components/input';
 import { toast } from '@repo/ui/components/sonner';
 import { Switch } from '@repo/ui/components/switch';
@@ -84,7 +85,8 @@ function ChannelForm({
   const { api } = useAuth();
   const [draft, setDraft] = useState<Draft>(() => draftOf(c));
   const [webhook, setWebhook] = useState(`${PUBLIC_API_URL}${c.webhookPath}`);
-  const [busy, setBusy] = useState<'save' | 'webhook' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'webhook' | 'remove' | null>(null);
+  const confirm = useConfirm();
 
   useEffect(() => setDraft(draftOf(c)), [c]);
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
@@ -110,10 +112,24 @@ function ChannelForm({
   }
 
   async function remove() {
-    if (!confirm(`Xoá cấu hình payOS của ${SIDE_LABEL[c.side]}?`)) return;
-    await api(`/admin/payos/${c.side}`, { method: 'DELETE' });
-    toast.success('Đã xoá cấu hình');
-    await onSaved();
+    if (
+      !(await confirm({
+        title: `Xoá cấu hình payOS của ${SIDE_LABEL[c.side]}?`,
+        description:
+          'Khách sẽ không mừng online qua kênh này được nữa cho tới khi bạn nhập lại key.',
+      }))
+    )
+      return;
+    setBusy('remove');
+    try {
+      await api(`/admin/payos/${c.side}`, { method: 'DELETE' });
+      toast.success('Đã xoá cấu hình');
+      await onSaved();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function confirmWebhook(side: Side) {
@@ -229,6 +245,7 @@ function ChannelForm({
               type="button"
               variant="destructive"
               className="max-sm:h-11"
+              disabled={busy === 'remove'}
               onClick={remove}
             >
               <Trash2Icon data-icon="inline-start" aria-hidden />
@@ -253,9 +270,13 @@ function ChannelForm({
       </div>
 
       {c.configured && (
-        <FormField label="Webhook URL (phải truy cập được từ internet)">
+        <FormField
+          label="Webhook URL (phải truy cập được từ internet)"
+          htmlFor={`payos-webhook-${c.side}`}
+        >
           <div className="flex gap-2">
             <Input
+              id={`payos-webhook-${c.side}`}
               className="min-w-0 flex-1"
               value={webhook}
               onChange={(e) => setWebhook(e.target.value)}

@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 import {
   CheckIcon,
   EyeOffIcon,
@@ -21,37 +19,45 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { Empty } from '@repo/ui/components/empty';
 import { ExportButton } from '@repo/ui/components/export-button';
-import { toast } from '@repo/ui/components/sonner';
 
 import { StatusBadge } from '../../_components/common';
 import { MODERATION_LABEL, formatDateTime } from '../../_lib/format';
+import { useQueryParam, useRunner, useUndoableDelete } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { guestbookSheets } from '../_lib/exports';
 import { ModerationTabs } from '../_lib/moderation-tabs';
-import { ErrorAlert, PageHeader } from '../_lib/ui';
+import { ErrorAlert, ListSkeleton, PageHeader } from '../_lib/ui';
 
 export default function GuestbookAdminPage() {
   const { api } = useAuth();
-  const [status, setStatus] = useState<'' | ModerationStatus>('PENDING');
+  // default tab is "Chờ duyệt"; "Tất cả" is stored as ?status=ALL
+  const [param, setParam] = useQueryParam('status');
+  const status = (param === 'ALL' ? '' : (param ?? 'PENDING')) as
+    '' | ModerationStatus;
   const { data, error, reload } = useAdminData<AdminGuestbookEntry[]>(
     `/admin/guestbook${status ? `?status=${status}` : ''}`,
   );
+  const { run, isBusy } = useRunner();
+  const { hidden, schedule } = useUndoableDelete(
+    (id) => api(`/admin/guestbook/${id}`, { method: 'DELETE' }),
+    reload,
+  );
+  const entries = data?.filter((e) => !hidden.has(e.id));
 
-  async function moderate(id: string, next: ModerationStatus) {
-    await api(`/admin/guestbook/${id}`, {
-      method: 'PATCH',
-      body: { status: next },
-    });
-    toast.success(next === 'APPROVED' ? 'Đã duyệt lời chúc' : 'Đã ẩn lời chúc');
-    await reload();
-  }
-
-  async function remove(id: string) {
-    if (!confirm('Xoá lời chúc này?')) return;
-    await api(`/admin/guestbook/${id}`, { method: 'DELETE' });
-    await reload();
-  }
+  const moderate = (id: string, next: ModerationStatus) =>
+    run(
+      id,
+      async () => {
+        await api(`/admin/guestbook/${id}`, {
+          method: 'PATCH',
+          body: { status: next },
+        });
+        await reload();
+      },
+      next === 'APPROVED' ? 'Đã duyệt lời chúc' : 'Đã ẩn lời chúc',
+    );
 
   return (
     <>
@@ -59,18 +65,22 @@ export default function GuestbookAdminPage() {
         title="Sổ lưu bút"
         actions={
           <>
-            <ModerationTabs value={status} onChange={setStatus} />
+            <ModerationTabs
+              value={status}
+              onChange={(v) => setParam(v || 'ALL')}
+            />
             <ExportButton
               fileName="So luu but"
               disabled={!data}
-              sheets={() => guestbookSheets(data ?? [])}
+              sheets={() => guestbookSheets(entries ?? [])}
             />
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reload} />
+      {!data && !error && <ListSkeleton />}
       <div className="grid gap-4">
-        {data?.map((e) => (
+        {entries?.map((e) => (
           <Card key={e.id} className="transition-shadow hover:shadow-lift">
             <CardHeader className="gap-y-3">
               <div className="flex items-center gap-3">
@@ -100,6 +110,7 @@ export default function GuestbookAdminPage() {
                   <Button
                     size="sm"
                     className="max-sm:h-11"
+                    disabled={isBusy(e.id)}
                     onClick={() => moderate(e.id, 'APPROVED')}
                   >
                     <CheckIcon data-icon="inline-start" aria-hidden />
@@ -111,6 +122,7 @@ export default function GuestbookAdminPage() {
                     variant="outline"
                     size="sm"
                     className="max-sm:h-11"
+                    disabled={isBusy(e.id)}
                     onClick={() => moderate(e.id, 'HIDDEN')}
                   >
                     <EyeOffIcon data-icon="inline-start" aria-hidden />
@@ -123,7 +135,10 @@ export default function GuestbookAdminPage() {
                   className="max-sm:size-11"
                   title="Xoá"
                   aria-label={`Xoá lời chúc của ${e.authorName}`}
-                  onClick={() => remove(e.id)}
+                  disabled={isBusy(e.id)}
+                  onClick={() =>
+                    schedule(e.id, `Đã xoá lời chúc của ${e.authorName}`)
+                  }
                 >
                   <Trash2Icon aria-hidden />
                 </Button>
@@ -143,20 +158,16 @@ export default function GuestbookAdminPage() {
             </CardContent>
           </Card>
         ))}
-        {data && !data.length && (
-          <div
-            className={`flex flex-col items-center gap-2 rounded-2xl border
-            border-dashed bg-card/60 px-6 py-14 text-center`}
-          >
-            <MessageSquareHeartIcon
-              aria-hidden
-              className="size-8 text-muted-foreground"
-            />
-            <p className="font-medium">Không có lời chúc nào</p>
-            <p className="text-sm text-muted-foreground">
-              Lời chúc mới của khách sẽ xuất hiện ở đây.
-            </p>
-          </div>
+        {entries && !entries.length && (
+          <Empty
+            icon={<MessageSquareHeartIcon />}
+            title={
+              status === 'PENDING'
+                ? 'Không có lời chúc nào chờ duyệt'
+                : 'Không có lời chúc nào'
+            }
+            description="Lời chúc mới của khách sẽ xuất hiện ở đây."
+          />
         )}
       </div>
     </>

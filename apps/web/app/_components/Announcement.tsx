@@ -67,7 +67,7 @@ export function Announcement({
         )}
 
         <p
-          className={`mx-auto mt-8 max-w-xs font-serif text-[15px] leading-snug
+          className={`mx-auto mt-8 max-w-xs font-serif text-base leading-snug
             tracking-wide uppercase`}
         >
           Trân trọng báo tin
@@ -86,8 +86,8 @@ export function Announcement({
 
         {venueName && (
           <p
-            className={`mx-auto mt-8 max-w-xs font-serif text-[15px]
-            tracking-wide uppercase`}
+            className={`mx-auto mt-8 max-w-xs font-serif text-base tracking-wide
+            uppercase`}
           >
             Lễ thành hôn được cử hành tại
             <span className="mt-1 block text-lg normal-case">{venueName}</span>
@@ -130,10 +130,7 @@ export function Announcement({
             className={`mx-auto mt-10 max-w-xs rounded-lg border
             border-gold-light/35 px-5 py-6`}
           >
-            <p
-              className={`text-[11px] tracking-[0.3em] text-gold-light
-              uppercase`}
-            >
+            <p className={'text-xs tracking-[0.3em] text-gold-light uppercase'}>
               Trân trọng kính mời
             </p>
             <p
@@ -143,7 +140,7 @@ export function Announcement({
               {guestName}
             </p>
             <p
-              className={`mt-2 font-serif text-[15px] text-primary-foreground/85
+              className={`mt-2 font-serif text-base text-primary-foreground/85
               italic`}
             >
               tới dự bữa tiệc chung vui cùng gia đình chúng tôi
@@ -166,11 +163,11 @@ function Family({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[11px] tracking-[0.25em] text-gold-light uppercase">
+      <span className="text-xs tracking-[0.25em] text-gold-light uppercase">
         {label}
       </span>
       {/* "Ông X & Bà Y" reads as two lines, as on printed invitations */}
-      <p className="font-serif text-[15px] leading-snug font-medium sm:text-lg">
+      <p className="font-serif text-base leading-snug font-medium sm:text-lg">
         {(parents ?? '—').split(/\s*&\s*/).map((line) => (
           <span key={line} className="block">
             {line}
@@ -188,9 +185,7 @@ function Person({ role, name }: { role: string; name: string }) {
         {name}
       </span>
       <span
-        className={
-          'mt-1 text-[11px] tracking-[0.3em] text-gold-light uppercase'
-        }
+        className={'mt-1 text-xs tracking-[0.3em] text-gold-light uppercase'}
       >
         {role}
       </span>

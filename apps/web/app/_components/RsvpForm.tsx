@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 
 import type { PublicInvitation, RsvpRequest, RsvpStatus } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
@@ -36,6 +36,15 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
     loading?: boolean;
   }>({});
   const answered = invitation.events.some((e) => e.rsvp.respondedAt);
+  // the result shows next to the submit button; bring it into view on phones
+  const statusRef = useRef<HTMLDivElement>(null);
+  const showStatus = () =>
+    requestAnimationFrame(() =>
+      statusRef.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      }),
+    );
 
   const update = (i: number, patch: Partial<(typeof responses)[number]>) =>
     setResponses((rs) =>
@@ -59,23 +68,18 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
     } catch (err) {
       setState({ error: (err as Error).message });
     }
+    showStatus();
   }
 
   return (
     <Card className="mx-auto max-w-2xl">
       <CardContent className="sm:px-8 sm:py-2">
         <form onSubmit={submit} className="flex flex-col gap-5">
-          {state.ok && (
-            <FormAlert tone="success">
-              Cảm ơn bạn đã phản hồi! Bạn có thể thay đổi bất cứ lúc nào.
-            </FormAlert>
-          )}
           {!state.ok && answered && (
             <FormAlert tone="success">
               Bạn đã phản hồi trước đó. Có thể cập nhật lại bên dưới.
             </FormAlert>
           )}
-          {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
 
           {invitation.events.map((event, i) => {
             const r = responses[i]!;
@@ -113,8 +117,10 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
                   {r.status !== 'DECLINED' && invitation.maxGuests > 1 && (
                     <FormField
                       label={`Số người tham dự (tối đa ${invitation.maxGuests})`}
+                      htmlFor={`rsvp-count-${event.id}`}
                     >
                       <NativeSelect
+                        id={`rsvp-count-${event.id}`}
                         className="w-full"
                         value={r.attendingCount}
                         onChange={(e) =>
@@ -158,6 +164,17 @@ export function RsvpForm({ invitation }: { invitation: PublicInvitation }) {
               maxLength={1000}
             />
           </FormField>
+          <div
+            ref={statusRef}
+            className="flex scroll-mb-24 flex-col gap-3 empty:hidden"
+          >
+            {state.ok && (
+              <FormAlert tone="success">
+                Cảm ơn bạn đã phản hồi! Bạn có thể thay đổi bất cứ lúc nào.
+              </FormAlert>
+            )}
+            {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
+          </div>
           <Button
             type="submit"
             size="lg"

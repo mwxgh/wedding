@@ -20,7 +20,11 @@ interface Particle {
 }
 
 export interface LoveCursorProps {
-  /** Particle colors. Defaults to the wedding rose/gold palette. */
+  /**
+   * Particle colors: any CSS color, including `var(--token)` and
+   * `color-mix()` (resolved once, since canvas cannot read CSS variables).
+   * Defaults to the wedding rose/gold palette.
+   */
   colors?: string[];
   /** Pixels the pointer must travel before the next trail particle. */
   spacing?: number;
@@ -90,6 +94,15 @@ export function LoveCursor({
     if (!canvas || !ctx) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+    // resolve CSS colors (tokens) to rgb() through the canvas' own style
+    const resolve = (c: string) => {
+      canvas.style.color = c;
+      return getComputedStyle(canvas).color || c;
+    };
+    const palette = colors.map(resolve);
+    const sparkle = resolve('var(--gold, #b8945a)');
+    canvas.style.color = '';
+
     const particles: Particle[] = [];
     let frame = 0;
     let last: { x: number; y: number } | null = null;
@@ -112,7 +125,7 @@ export function LoveCursor({
         size: rand(5, 9),
         rotation: rand(-0.4, 0.4),
         spin: rand(-0.03, 0.03),
-        color: pick(colors),
+        color: pick(palette),
         shape: 'heart',
         sway: rand(0, Math.PI * 2),
         ...p,
@@ -167,7 +180,7 @@ export function LoveCursor({
       const roll = Math.random();
       spawn(x, y, {
         shape: roll < 0.55 ? 'heart' : roll < 0.85 ? 'petal' : 'sparkle',
-        color: roll >= 0.85 ? '#b8945a' : pick(colors),
+        color: roll >= 0.85 ? sparkle : pick(palette),
       });
       wake();
     };

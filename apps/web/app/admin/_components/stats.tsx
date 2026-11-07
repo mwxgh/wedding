@@ -1,11 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
-import { motion, useReducedMotion } from 'motion/react';
+import { animate, motion, useReducedMotion } from 'motion/react';
 
 import { Card, CardContent } from '@repo/ui/components/card';
-import CountUp from '@repo/ui/components/reactbits/count-up';
 import { cn } from '@repo/ui/lib/utils';
 
 /** Card that rises in on mount; `index` staggers a row of them. */
@@ -58,7 +57,10 @@ export function PanelTitle({
   );
 }
 
-/** Number that counts up; `decimals` keeps e.g. "21.5" for compact money. */
+/**
+ * Number that counts up, formatted vi-VN ("21,5", "1.234"); `decimals` keeps
+ * e.g. "21,5" for compact money. Respects reduced motion.
+ */
 export function Count({
   value,
   decimals = 0,
@@ -66,18 +68,45 @@ export function Count({
   value: number;
   decimals?: number;
 }) {
-  const rounded = Number(value.toFixed(decimals));
-  return <CountUp to={rounded} separator="." duration={1.1} />;
+  const ref = useRef<HTMLSpanElement>(null);
+  const reduce = useReducedMotion();
+  const fmt = useMemo(
+    () => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: decimals }),
+    [decimals],
+  );
+  const final = fmt.format(value);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (reduce) {
+      el.textContent = final;
+      return;
+    }
+    const controls = animate(0, value, {
+      duration: 1.1,
+      ease: 'easeOut',
+      onUpdate: (v) => {
+        el.textContent = fmt.format(v);
+      },
+    });
+    return () => controls.stop();
+  }, [value, fmt, final, reduce]);
+
+  return <span ref={ref}>{final}</span>;
 }
 
 /** Ratio against a limit: the track is a lighter step of the same hue. */
 export function Meter({
   value,
   max,
+  label,
   className,
 }: {
   value: number;
   max: number;
+  /** Accessible name, e.g. "Khách đã xác nhận". */
+  label: string;
   className?: string;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
@@ -85,6 +114,8 @@ export function Meter({
   return (
     <div
       role="meter"
+      aria-label={label}
+      aria-valuetext={`${value.toLocaleString('vi-VN')}/${max.toLocaleString('vi-VN')}`}
       aria-valuenow={value}
       aria-valuemin={0}
       aria-valuemax={max}
@@ -178,7 +209,7 @@ export function StatTile({
             </span>
           )}
         </p>
-        {meter && <Meter value={meter.value} max={meter.max} />}
+        {meter && <Meter label={label} value={meter.value} max={meter.max} />}
         {context && (
           <p className="mt-auto text-xs text-muted-foreground">{context}</p>
         )}

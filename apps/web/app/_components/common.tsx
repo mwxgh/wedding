@@ -1,4 +1,11 @@
-import type { ComponentProps, ReactNode } from 'react';
+import {
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+  cloneElement,
+  isValidElement,
+  useId,
+} from 'react';
 
 import { Alert, AlertDescription } from '@repo/ui/components/alert';
 import { Badge } from '@repo/ui/components/badge';
@@ -66,13 +73,19 @@ export function SectionTitle({
   );
 }
 
+const TONE = {
+  success: 'border-success/30 bg-success/10 text-success',
+  danger: 'border-destructive/30 bg-destructive/10 text-destructive',
+  warning: 'border-warning/30 bg-warning/10 text-warning',
+};
+
 const STATUS_TONES: Record<string, string> = {
-  ATTENDING: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  APPROVED: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  DECLINED: 'border-red-200 bg-red-50 text-red-800',
-  HIDDEN: 'border-red-200 bg-red-50 text-red-800',
-  MAYBE: 'border-amber-200 bg-amber-50 text-amber-800',
-  PENDING: 'border-amber-200 bg-amber-50 text-amber-800',
+  ATTENDING: TONE.success,
+  APPROVED: TONE.success,
+  DECLINED: TONE.danger,
+  HIDDEN: TONE.danger,
+  MAYBE: TONE.warning,
+  PENDING: TONE.warning,
 };
 
 /** Badge colored by RSVP / moderation status. */
@@ -96,6 +109,11 @@ export function StatusBadge({
   );
 }
 
+/**
+ * Label + control. Without `htmlFor`, a single child element gets a generated
+ * `id` (unless it has one) so the label is programmatically tied to it.
+ * Pass `htmlFor` when the control is nested inside a wrapper.
+ */
 export function FormField({
   label,
   htmlFor,
@@ -107,10 +125,19 @@ export function FormField({
   className?: string;
   children: ReactNode;
 }) {
+  const autoId = useId();
+  let id = htmlFor;
+  let content = children;
+  if (!htmlFor && isValidElement<{ id?: string }>(children)) {
+    const own = children.props.id;
+    id = own ?? autoId;
+    if (!own)
+      content = cloneElement(children as ReactElement<{ id?: string }>, { id });
+  }
   return (
     <Field className={className}>
-      <FieldLabel htmlFor={htmlFor}>{label}</FieldLabel>
-      {children}
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      {content}
     </Field>
   );
 }

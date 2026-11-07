@@ -1,5 +1,7 @@
 'use client';
 
+import type { CSSProperties } from 'react';
+
 import { CalendarDaysIcon, MapPinIcon } from 'lucide-react';
 
 import type { EventJson } from '@repo/types';
@@ -16,7 +18,9 @@ export function EventCard({ event }: { event: EventJson }) {
   return (
     <SpotlightCard
       theme="light"
-      spotlightColor="rgba(107, 22, 34, 0.08)"
+      spotlightColor="color-mix(in srgb, var(--primary) 8%, transparent)"
+      // ivory card surface from the theme instead of the component's white
+      style={{ '--spotlight-card-surface': 'var(--card)' } as CSSProperties}
       className={`grid gap-6 rounded-3xl p-5 text-left ring-1 ring-gold/25
         sm:grid-cols-[9.5rem_1fr] sm:gap-8 sm:p-7`}
     >
@@ -36,7 +40,7 @@ export function EventCard({ event }: { event: EventJson }) {
         </span>
         <span className="flex flex-col text-right sm:text-center">
           <span
-            className={`text-[11px] font-medium tracking-[0.2em] text-gold-light
+            className={`text-xs font-medium tracking-[0.2em] text-gold-light
               uppercase`}
           >
             {weekday}
@@ -60,7 +64,7 @@ export function EventCard({ event }: { event: EventJson }) {
         >
           {event.name}
         </h3>
-        <div className="mt-4 flex flex-1 flex-col gap-3 text-[15px]">
+        <div className="mt-4 flex flex-1 flex-col gap-3 text-base">
           <p className="flex items-start gap-3">
             <CalendarDaysIcon
               aria-hidden

@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import { Loader2Icon } from 'lucide-react';
+import { EyeIcon, EyeOffIcon, Loader2Icon } from 'lucide-react';
 
 import type { LoginRequest, LoginResponse } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,15 +87,33 @@ export default function LoginPage() {
               />
             </FormField>
             <FormField label="Mật khẩu" htmlFor="password">
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="h-11"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="h-11 pr-12"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-1/2 right-1 -translate-y-1/2"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                  aria-pressed={showPassword}
+                  aria-controls="password"
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  {showPassword ? (
+                    <EyeOffIcon aria-hidden />
+                  ) : (
+                    <EyeIcon aria-hidden />
+                  )}
+                </Button>
+              </div>
             </FormField>
             <Button
               type="submit"

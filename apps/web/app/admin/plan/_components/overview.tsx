@@ -90,7 +90,7 @@ function Money({
             triệu ₫
           </span>
         </p>
-        {meter && <Meter value={meter.value} max={meter.max} />}
+        {meter && <Meter label={label} value={meter.value} max={meter.max} />}
         {context && (
           <p className="mt-auto text-xs text-muted-foreground">{context}</p>
         )}
@@ -252,7 +252,11 @@ export function PlanOverview({
                         / {formatVndShort(est)} ₫
                       </span>
                     </div>
-                    <Meter value={pd} max={Math.max(1, est, pd)} />
+                    <Meter
+                      label={`Đã chi ${PLAN_CATEGORY_LABEL[c.category]}`}
+                      value={pd}
+                      max={Math.max(1, est, pd)}
+                    />
                   </li>
                 );
               })}
@@ -274,7 +278,11 @@ export function PlanOverview({
             title="Việc cần làm"
             description={`${t.done}/${t.total} việc đã xong`}
           />
-          <Meter value={t.done} max={Math.max(1, t.total)} />
+          <Meter
+            label="Việc đã xong"
+            value={t.done}
+            max={Math.max(1, t.total)}
+          />
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span
               className={cn(

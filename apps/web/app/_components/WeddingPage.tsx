@@ -69,7 +69,14 @@ export async function WeddingPage({
   return (
     <div data-theme="invite" className="min-h-dvh bg-background">
       <main className="relative w-full overflow-x-clip">
-        <LoveCursor colors={['#6b1622', '#a63846', '#c9a25c', '#ead09a']} />
+        <LoveCursor
+          colors={[
+            'var(--primary)',
+            'color-mix(in oklch, var(--primary), white 25%)',
+            'var(--gold)',
+            'var(--gold-light)',
+          ]}
+        />
         <SoundToggle src="/music/canon-in-d.mp3" />
         <Hero
           groomName={info.groomName}

@@ -20,6 +20,7 @@ import type {
 } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
+import { Empty } from '@repo/ui/components/empty';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
@@ -30,14 +31,16 @@ import { toast } from '@repo/ui/components/sonner';
 
 import { FormField, StatusBadge } from '../../_components/common';
 import { MODERATION_LABEL } from '../../_lib/format';
+import { useQueryParam, useRunner, useUndoableDelete } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { photoSheets } from '../_lib/exports';
 import { ModerationTabs } from '../_lib/moderation-tabs';
-import { ErrorAlert, PageHeader } from '../_lib/ui';
+import { ErrorAlert, ListSkeleton, PageHeader } from '../_lib/ui';
 
 export default function PhotosAdminPage() {
   const { api } = useAuth();
-  const [status, setStatus] = useState<'' | ModerationStatus>('');
+  const [param, setParam] = useQueryParam('status');
+  const status = (param ?? '') as '' | ModerationStatus;
   const { data, error, reload } = useAdminData<AdminPhoto[]>(
     `/admin/photos${status ? `?status=${status}` : ''}`,
   );
@@ -66,24 +69,41 @@ export default function PhotosAdminPage() {
     }
   }
 
-  async function update(id: string, body: UpdatePhotoInput) {
-    await api(`/admin/photos/${id}`, { method: 'PATCH', body });
-    await reload();
+  const { run, isBusy } = useRunner();
+  const { hidden, schedule } = useUndoableDelete(
+    (id) => api(`/admin/photos/${id}`, { method: 'DELETE' }),
+    () => Promise.all([reload(), reloadAlbums()]),
+  );
+  const photos = data?.filter((p) => !hidden.has(p.id));
+
+  const update = (id: string, body: UpdatePhotoInput) =>
+    run(
+      id,
+      async () => {
+        await api(`/admin/photos/${id}`, { method: 'PATCH', body });
+        await reload();
+      },
+      body.status === 'APPROVED' ? 'Đã duyệt ảnh' : 'Đã ẩn ảnh',
+    );
+
+  async function createAlbum(e: React.FormEvent) {
+    e.preventDefault();
+    const title = newAlbum.trim();
+    if (!title) return;
+    await run(
+      'album',
+      async () => {
+        await api('/admin/albums', { body: { title } });
+        setNewAlbum('');
+        await reloadAlbums();
+      },
+      'Đã tạo album',
+    );
   }
 
-  async function remove(id: string) {
-    if (!confirm('Xoá ảnh này?')) return;
-    await api(`/admin/photos/${id}`, { method: 'DELETE' });
-    await Promise.all([reload(), reloadAlbums()]);
-  }
-
-  async function createAlbum() {
-    if (!newAlbum.trim()) return;
-    await api('/admin/albums', { body: { title: newAlbum.trim() } });
-    setNewAlbum('');
-    toast.success('Đã tạo album');
-    await reloadAlbums();
-  }
+  const photoName = (p: AdminPhoto) =>
+    p.caption ||
+    (p.invitation ? `ảnh của ${p.invitation.name}` : 'ảnh của cô dâu chú rể');
 
   return (
     <>
@@ -91,23 +111,27 @@ export default function PhotosAdminPage() {
         title="Album ảnh"
         actions={
           <>
-            <ModerationTabs value={status} onChange={setStatus} />
+            <ModerationTabs
+              value={status}
+              onChange={(v) => setParam(v || null)}
+            />
             <ExportButton
               fileName="Album anh"
               disabled={!data}
-              sheets={() => photoSheets(data ?? [])}
+              sheets={() => photoSheets(photos ?? [])}
             />
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reload} />
 
       <Card className="mb-6">
         <CardContent
           className={'grid gap-5 sm:grid-cols-[1fr_1.4fr_1fr] sm:items-end'}
         >
-          <FormField label="Album">
+          <FormField label="Album" htmlFor="upload-album">
             <NativeSelect
+              id="upload-album"
               className="w-full"
               value={albumId}
               onChange={(e) => setAlbumId(e.target.value)}
@@ -122,7 +146,7 @@ export default function PhotosAdminPage() {
               ))}
             </NativeSelect>
           </FormField>
-          <FormField label="Tải ảnh lên (tự động duyệt)">
+          <FormField label="Tải ảnh lên (tự động duyệt)" htmlFor="upload-files">
             <div
               className={`relative flex items-center gap-3 rounded-xl border
                 border-dashed border-primary/40 bg-secondary/40 px-3 py-1.5
@@ -144,6 +168,7 @@ export default function PhotosAdminPage() {
                 )}
               </span>
               <Input
+                id="upload-files"
                 type="file"
                 multiple
                 accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
@@ -155,26 +180,33 @@ export default function PhotosAdminPage() {
               />
             </div>
           </FormField>
-          <FormField label="Tạo album mới">
-            <div className="flex gap-2">
+          <FormField label="Tạo album mới" htmlFor="new-album">
+            <form onSubmit={createAlbum} className="flex gap-2">
               <Input
+                id="new-album"
                 value={newAlbum}
                 placeholder="Tên album"
                 onChange={(e) => setNewAlbum(e.target.value)}
               />
-              <Button variant="outline" className="h-10" onClick={createAlbum}>
+              <Button
+                type="submit"
+                variant="outline"
+                className="h-10"
+                disabled={isBusy('album') || !newAlbum.trim()}
+              >
                 <FolderPlusIcon data-icon="inline-start" aria-hidden />
                 Tạo
               </Button>
-            </div>
+            </form>
           </FormField>
         </CardContent>
       </Card>
 
+      {!data && !error && <ListSkeleton />}
       <div
         className={'grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4'}
       >
-        {data?.map((p) => (
+        {photos?.map((p) => (
           <Card
             key={p.id}
             className={`group/photo gap-3 pt-0 transition-shadow
@@ -184,7 +216,7 @@ export default function PhotosAdminPage() {
               {/* eslint-disable-next-line @next/next/no-img-element -- presigned RustFS URLs */}
               <img
                 src={p.url}
-                alt={p.caption ?? ''}
+                alt={photoName(p)}
                 loading="lazy"
                 className={`size-full object-cover transition-transform
                 duration-300 group-hover/photo:scale-[1.03]
@@ -211,6 +243,7 @@ export default function PhotosAdminPage() {
                   <Button
                     size="sm"
                     className="max-sm:h-11"
+                    disabled={isBusy(p.id)}
                     onClick={() => update(p.id, { status: 'APPROVED' })}
                   >
                     <CheckIcon data-icon="inline-start" aria-hidden />
@@ -222,6 +255,7 @@ export default function PhotosAdminPage() {
                     variant="outline"
                     size="sm"
                     className="max-sm:h-11"
+                    disabled={isBusy(p.id)}
                     onClick={() => update(p.id, { status: 'HIDDEN' })}
                   >
                     <EyeOffIcon data-icon="inline-start" aria-hidden />
@@ -233,8 +267,9 @@ export default function PhotosAdminPage() {
                   size="icon-sm"
                   className="ml-auto max-sm:size-11"
                   title="Xoá"
-                  aria-label="Xoá ảnh"
-                  onClick={() => remove(p.id)}
+                  aria-label={`Xoá ${photoName(p)}`}
+                  disabled={isBusy(p.id)}
+                  onClick={() => schedule(p.id, 'Đã xoá ảnh')}
                 >
                   <Trash2Icon aria-hidden />
                 </Button>
@@ -243,17 +278,12 @@ export default function PhotosAdminPage() {
           </Card>
         ))}
       </div>
-      {data && !data.length && (
-        <div
-          className={`flex flex-col items-center gap-2 rounded-2xl border
-          border-dashed bg-card/60 px-6 py-14 text-center`}
-        >
-          <ImagesIcon aria-hidden className="size-8 text-muted-foreground" />
-          <p className="font-medium">Chưa có ảnh nào</p>
-          <p className="text-sm text-muted-foreground">
-            Tải ảnh lên ở trên hoặc chờ khách chia sẻ khoảnh khắc.
-          </p>
-        </div>
+      {photos && !photos.length && (
+        <Empty
+          icon={<ImagesIcon />}
+          title={status ? 'Không có ảnh nào ở mục này' : 'Chưa có ảnh nào'}
+          description="Tải ảnh lên ở trên hoặc chờ khách chia sẻ khoảnh khắc."
+        />
       )}
     </>
   );

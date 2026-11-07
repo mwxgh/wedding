@@ -18,6 +18,7 @@ import type {
   PlanSummary,
 } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Skeleton } from '@repo/ui/components/skeleton';
 import { toast } from '@repo/ui/components/sonner';
@@ -29,6 +30,7 @@ import {
 } from '@repo/ui/components/tabs';
 
 import { FormField } from '../../_components/common';
+import { useQueryParam, useRunner } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { planSheets } from '../_lib/exports';
 import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
@@ -43,6 +45,10 @@ export default function PlanPage() {
   const tasks = useAdminData<AdminTask[]>('/admin/plan/tasks');
   const [budget, setBudget] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
+  const [tabParam, setTab] = useQueryParam('tab');
+  const tab = tabParam ?? 'overview';
 
   // every change can move the totals, so refresh the summary too
   const { reload: reloadSummary } = summary;
@@ -74,20 +80,22 @@ export default function PlanPage() {
 
   async function reschedule() {
     if (
-      !confirm(
-        'Đặt lại hạn các việc gợi ý chưa xong theo đúng mốc so với ngày cưới? Hạn bạn tự sửa cho các việc đó sẽ bị thay.',
-      )
+      !(await confirm({
+        title: 'Tính lại hạn theo ngày cưới?',
+        description:
+          'Đặt lại hạn các việc gợi ý chưa xong theo đúng mốc so với ngày cưới. Hạn bạn tự sửa cho các việc đó sẽ bị thay.',
+        confirmLabel: 'Tính lại hạn',
+        destructive: false,
+      }))
     )
       return;
-    try {
+    await run('reschedule', async () => {
       const res = await api<{ rescheduled: number }>('/admin/plan/reschedule', {
         method: 'POST',
       });
       toast.success(`Đã tính lại hạn ${res.rescheduled} việc`);
       await reloadAll();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
+    });
   }
 
   async function saveBudget(e: React.FormEvent) {
@@ -112,8 +120,20 @@ export default function PlanPage() {
         title="Kế hoạch"
         actions={
           <>
-            <Button variant="outline" onClick={reschedule}>
-              <CalendarClockIcon data-icon="inline-start" aria-hidden />
+            <Button
+              variant="outline"
+              onClick={reschedule}
+              disabled={isBusy('reschedule')}
+            >
+              {isBusy('reschedule') ? (
+                <Loader2Icon
+                  data-icon="inline-start"
+                  aria-hidden
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              ) : (
+                <CalendarClockIcon data-icon="inline-start" aria-hidden />
+              )}
               Tính lại hạn theo ngày cưới
             </Button>
             <Button variant="outline" onClick={seedTemplate} disabled={seeding}>
@@ -139,7 +159,7 @@ export default function PlanPage() {
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reloadAll} />
       {!ready && !error && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, i) => (
@@ -148,7 +168,7 @@ export default function PlanPage() {
         </div>
       )}
       {ready && (
-        <Tabs defaultValue="overview">
+        <Tabs value={tab} onValueChange={(v) => setTab(String(v))}>
           <div className="-mx-4 mb-5 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <TabsList className="max-sm:h-11">
               <TabsTrigger value="overview">
@@ -206,11 +226,19 @@ export default function PlanPage() {
         open={budget !== null}
         title="Ngân sách đám cưới"
         description="Tổng số tiền dự kiến chi cho đám cưới, dùng để theo dõi phần còn lại."
+        value={budget}
         onClose={() => setBudget(null)}
         onSubmit={saveBudget}
       >
-        <FormField label="Tổng ngân sách (VND) — để trống nếu chưa đặt">
-          <MoneyInput value={budget ?? ''} onChange={setBudget} />
+        <FormField
+          label="Tổng ngân sách (VND) — để trống nếu chưa đặt"
+          htmlFor="plan-budget"
+        >
+          <MoneyInput
+            id="plan-budget"
+            value={budget ?? ''}
+            onChange={setBudget}
+          />
         </FormField>
       </FormDialog>
     </>

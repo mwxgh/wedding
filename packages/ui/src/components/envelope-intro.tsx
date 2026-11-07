@@ -28,13 +28,37 @@ export interface EnvelopeIntroProps {
    * `onOpenStart` then runs without a user gesture.
    */
   autoOpenAfter?: number;
+  /**
+   * sessionStorage key: once opened, later visits in the same tab session skip
+   * the cover (and keep their scroll position).
+   */
+  rememberKey?: string;
 }
+
+const readSeen = (key?: string) => {
+  if (!key) return false;
+  try {
+    return sessionStorage.getItem(key) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const writeSeen = (key?: string) => {
+  if (!key) return;
+  try {
+    sessionStorage.setItem(key, '1');
+  } catch {
+    /* storage unavailable */
+  }
+};
 
 // Timeline (seconds) of the opening sequence
 const T = { press: 0.25, lift: 0.7, fade: 0.6 };
 
 /**
- * Full-screen cover shown on every visit (and reload): an ivory invitation
+ * Full-screen cover shown on every visit (or once per tab session with
+ * `rememberKey`): an ivory invitation
  * card on a deep burgundy backdrop with drifting hearts. Opening it (tap, or
  * `autoOpenAfter`) presses the seal, lifts the card away and fades to the
  * page, which always starts from the top.
@@ -48,19 +72,33 @@ export function EnvelopeIntro({
   onOpenStart,
   onOpened,
   autoOpenAfter,
+  rememberKey,
 }: EnvelopeIntroProps) {
   const reduceMotion = useReducedMotion();
   const [stage, setStage] = useState<Stage>('closed');
+  // already opened this session: drop the cover without its exit animation
+  const [skipped, setSkipped] = useState(false);
+  // guards against opening twice (tap racing the auto-open timer)
+  const started = useRef(false);
 
   // Start from the top: browsers restore the old scroll position on reload,
   // which would land the guest mid-page once the cover opens
   useEffect(() => {
+    if (readSeen(rememberKey)) {
+      started.current = true;
+      setSkipped(true);
+      setStage('done');
+      onOpened?.();
+      return;
+    }
     const previous = history.scrollRestoration;
     history.scrollRestoration = 'manual';
     window.scrollTo(0, 0);
     return () => {
       history.scrollRestoration = previous;
     };
+    // mount-only: decides once whether the cover shows at all
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Lock page scroll while the cover is up (the root element is the one that
@@ -75,11 +113,10 @@ export function EnvelopeIntro({
     };
   }, [stage]);
 
-  // guards against opening twice (tap racing the auto-open timer)
-  const started = useRef(false);
   const open = () => {
     if (started.current) return;
     started.current = true;
+    writeSeen(rememberKey);
     onOpenStart?.();
     setStage('opening');
     const total = reduceMotion ? 0.2 : T.press + T.lift;
@@ -98,6 +135,7 @@ export function EnvelopeIntro({
   const opening = stage === 'opening';
   const d = (s: number) => (reduceMotion ? 0 : s);
 
+  if (skipped) return null;
   return (
     <AnimatePresence onExitComplete={onOpened}>
       {stage !== 'done' && (
@@ -141,9 +179,15 @@ export function EnvelopeIntro({
               bg-[radial-gradient(circle_at_35%_30%,color-mix(in_oklch,var(--primary),white_18%),var(--rose-deep))]
               text-2xl text-primary-foreground
               shadow-[0_8px_20px_-6px_rgb(0_0_0/0.5)]`}
-              animate={opening ? { scale: 0.85 } : { scale: [1, 1.05, 1] }}
-              transition={
+              animate={
                 opening
+                  ? { scale: 0.85 }
+                  : reduceMotion
+                    ? { scale: 1 }
+                    : { scale: [1, 1.05, 1] }
+              }
+              transition={
+                opening || reduceMotion
                   ? { duration: d(T.press) }
                   : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }
               }

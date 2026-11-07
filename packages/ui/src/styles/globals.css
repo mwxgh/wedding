@@ -27,8 +27,11 @@
   --accent: #f4ecdc;
   --accent-foreground: #6b4f1d;
   --destructive: #b3403a;
+  /* Status tones; text on a 10% tint of itself stays >= 4.5:1 */
+  --success: #2e6b47;
+  --warning: #8a5a10;
   --border: #e5dfd4;
-  --input: #dbd4c7;
+  --input: #8f8778; /* >= 3:1 on card and background (WCAG 1.4.11) */
   --ring: #3f6b55;
   /* Chart series: sage / amber / plum differ in lightness as well as hue so
      they stay apart under CVD; charts still ship legends and direct labels. */
@@ -74,7 +77,8 @@
   --accent-foreground: #6b4a14;
   --destructive: #b3261e;
   --border: #e2d2c0;
-  --input: #d6c2ab;
+  /* field borders need >= 3:1 against card/background (WCAG 1.4.11) */
+  --input: #958069;
   --ring: #6b1622;
   --rose-deep: #4f0d16;
   --gold: #a27532;
@@ -109,6 +113,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

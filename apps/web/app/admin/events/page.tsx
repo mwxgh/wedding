@@ -31,6 +31,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@repo/ui/components/card';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
+import { Empty } from '@repo/ui/components/empty';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
@@ -47,9 +49,10 @@ import {
   emptyTiming,
   offsetLabel,
 } from '../_components/event-timing';
+import { useRunner } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { eventSheets } from '../_lib/exports';
-import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
+import { ErrorAlert, FormDialog, ListSkeleton, PageHeader } from '../_lib/ui';
 
 interface EventForm {
   id?: string;
@@ -74,6 +77,8 @@ const emptyEvent: EventForm = {
 
 export default function EventsPage() {
   const { api } = useAuth();
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
   const { data, error, reload } = useAdminData<AdminEvent[]>('/admin/events');
   const { data: wedding } = useAdminData<WeddingInfoJson | null>(
     '/admin/wedding',
@@ -110,32 +115,54 @@ export default function EventsPage() {
 
   async function removeEvent(ev: AdminEvent) {
     if (
-      !confirm(
-        `Xoá sự kiện "${ev.name}"? RSVP và bàn tiệc của sự kiện này cũng bị xoá.`,
-      )
+      !(await confirm({
+        title: `Xoá sự kiện "${ev.name}"?`,
+        description:
+          'RSVP và bàn tiệc của sự kiện này cũng bị xoá. Không thể hoàn tác.',
+      }))
     )
       return;
-    await api(`/admin/events/${ev.id}`, { method: 'DELETE' });
-    toast.success('Đã xoá sự kiện');
-    await reload();
+    await run(
+      ev.id,
+      async () => {
+        await api(`/admin/events/${ev.id}`, { method: 'DELETE' });
+        await reload();
+      },
+      'Đã xoá sự kiện',
+    );
   }
 
-  async function addTable(eventId: string) {
+  async function addTable(e: React.FormEvent, eventId: string) {
+    e.preventDefault();
     const name = tableName[eventId]?.trim();
     if (!name) return;
-    try {
-      await api(`/admin/events/${eventId}/tables`, { body: { name } });
-      setTableName((t) => ({ ...t, [eventId]: '' }));
-      await reload();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
+    await run(
+      `table-${eventId}`,
+      async () => {
+        await api(`/admin/events/${eventId}/tables`, { body: { name } });
+        setTableName((t) => ({ ...t, [eventId]: '' }));
+        await reload();
+      },
+      `Đã thêm ${name}`,
+    );
   }
 
-  async function removeTable(id: string) {
-    if (!confirm('Xoá bàn này?')) return;
-    await api(`/admin/tables/${id}`, { method: 'DELETE' });
-    await reload();
+  async function removeTable(id: string, name: string) {
+    if (
+      !(await confirm({
+        title: `Xoá ${name}?`,
+        description: 'Khách đã xếp vào bàn này sẽ trở về "Chưa xếp bàn".',
+      }))
+    )
+      return;
+    await run(
+      id,
+      async () => {
+        await api(`/admin/tables/${id}`, { method: 'DELETE' });
+        await reload();
+      },
+      `Đã xoá ${name}`,
+    );
   }
 
   return (
@@ -162,7 +189,8 @@ export default function EventsPage() {
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reload} />
+      {!data && !error && <ListSkeleton rows={2} />}
 
       <div className="grid gap-5">
         {data?.map((ev) => (
@@ -225,6 +253,7 @@ export default function EventsPage() {
                   className="max-sm:size-11"
                   title="Xoá"
                   aria-label={`Xoá sự kiện ${ev.name}`}
+                  disabled={isBusy(ev.id)}
                   onClick={() => removeEvent(ev)}
                 >
                   <Trash2Icon />
@@ -333,7 +362,8 @@ export default function EventsPage() {
                           className={`mt-auto self-start text-destructive
                           hover:bg-destructive/10 hover:text-destructive
                           max-sm:h-11`}
-                          onClick={() => removeTable(t.id)}
+                          disabled={isBusy(t.id)}
+                          onClick={() => removeTable(t.id, t.name)}
                         >
                           <Trash2Icon data-icon="inline-start" aria-hidden />
                           Xoá bàn
@@ -343,7 +373,8 @@ export default function EventsPage() {
                   );
                 })}
               </div>
-              <div
+              <form
+                onSubmit={(e) => addTable(e, ev.id)}
                 className={`mt-4 flex flex-col gap-2 rounded-xl bg-muted/40 p-3
                 sm:flex-row sm:items-center`}
               >
@@ -357,14 +388,17 @@ export default function EventsPage() {
                   }
                 />
                 <Button
+                  type="submit"
                   variant="outline"
                   className="max-sm:h-11"
-                  onClick={() => addTable(ev.id)}
+                  disabled={
+                    isBusy(`table-${ev.id}`) || !tableName[ev.id]?.trim()
+                  }
                 >
                   <PlusIcon data-icon="inline-start" />
                   Thêm bàn
                 </Button>
-              </div>
+              </form>
               <p className="mt-2 text-xs text-muted-foreground">
                 Xếp khách vào bàn ở trang Thiệp mời → Sửa.
               </p>
@@ -372,21 +406,11 @@ export default function EventsPage() {
           </Card>
         ))}
         {data && !data.length && (
-          <div
-            className={`flex flex-col items-center gap-2 rounded-2xl border
-            border-dashed bg-card px-6 py-14 text-center text-muted-foreground`}
-          >
-            <span
-              className={`grid size-12 place-items-center rounded-full
-              bg-secondary text-secondary-foreground`}
-            >
-              <CalendarHeartIcon aria-hidden className="size-5" />
-            </span>
-            <p className="font-medium text-foreground">Chưa có sự kiện nào</p>
-            <p className="text-sm">
-              Thêm lễ vu quy, lễ thành hôn hay tiệc cưới để khách RSVP.
-            </p>
-          </div>
+          <Empty
+            icon={<CalendarHeartIcon />}
+            title="Chưa có sự kiện nào"
+            description="Thêm lễ vu quy, lễ thành hôn hay tiệc cưới để khách RSVP."
+          />
         )}
       </div>
 
@@ -395,6 +419,7 @@ export default function EventsPage() {
         title={form?.id ? 'Sửa sự kiện' : 'Thêm sự kiện'}
         description="Giờ sự kiện tính theo ngày cưới; đổi ngày cưới trong Cài đặt thì sự kiện tự dời theo."
         error={formError}
+        value={form}
         onClose={() => setForm(null)}
         onSubmit={save}
       >

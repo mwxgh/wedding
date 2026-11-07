@@ -845,12 +845,17 @@ export function LoveStory({
   // sun: high and warm, sinking behind the clouds, back as golden light
   const sunY = useTransform(p, STOPS, [0, 8, 46, 90, 150, 10]);
   const sunOpacity = useTransform(p, STOPS, [1, 0.9, 0.45, 0.25, 0, 1]);
-  // parallax: far drifts least, foreground most
-  const farX = useTransform(p, [0, 1], [0, -50]);
-  const midX = useTransform(p, [0, 1], [0, -120]);
-  const foreX = useTransform(p, [0, 1], [0, -260]);
+  // parallax: far drifts least, foreground most (none under reduced motion)
+  const drift = reduce ? 0 : 1;
+  const farX = useTransform(p, [0, 1], [0, -50 * drift]);
+  const midX = useTransform(p, [0, 1], [0, -120 * drift]);
+  const foreX = useTransform(p, [0, 1], [0, -260 * drift]);
   // camera: eases in on the couple, pulls back when they drift apart
-  const zoom = useTransform(p, STOPS, [1, 1.06, 1.1, 1, 1.12, 1.16]);
+  const zoom = useTransform(
+    p,
+    STOPS,
+    reduce ? STOPS.map(() => 1) : [1, 1.06, 1.1, 1, 1.12, 1.16],
+  );
 
   const scene = SCENES[active]!;
   const wedding = !!scene.wedding;
@@ -963,7 +968,8 @@ export function LoveStory({
               className={cn(
                 `rounded-3xl bg-card/95 p-6 shadow-soft ring-1 ring-gold/25
                 transition-[opacity,scale] duration-500 sm:p-8`,
-                i === active ? 'opacity-100' : 'opacity-50 lg:scale-[0.97]',
+                // 80% keeps dimmed chapters at >= 4.5:1 text contrast
+                i === active ? 'opacity-100' : 'opacity-80 lg:scale-[0.97]',
               )}
             >
               <span
@@ -979,8 +985,7 @@ export function LoveStory({
                 {c.title}
               </h3>
               <p
-                className={`mt-3 text-[15px] leading-relaxed text-foreground/85
-                sm:text-base`}
+                className={'mt-3 text-base leading-relaxed text-foreground/85'}
               >
                 {c.text}
               </p>

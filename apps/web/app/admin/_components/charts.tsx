@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 
+import { useReducedMotion } from 'motion/react';
 import {
   Bar,
   BarChart,
@@ -64,6 +65,10 @@ export function ActivityChart({
     });
   }, [timeline]);
   const last = data.length - 1;
+  const animate = !useReducedMotion();
+  const summary = data[last]
+    ? `Đến ngày ${shortDate(data[last].date)}: ${data[last].opened} thiệp đã mở, ${data[last].responded} thiệp đã phản hồi (cộng dồn).`
+    : 'Chưa có số liệu.';
 
   // direct label at each line's end only, never on every point
   const endLabel =
@@ -91,7 +96,12 @@ export function ActivityChart({
       ) : null;
 
   return (
-    <ChartContainer config={activityConfig} className="aspect-auto h-64 w-full">
+    <ChartContainer
+      config={activityConfig}
+      className="aspect-auto h-64 w-full"
+      role="img"
+      aria-label={summary}
+    >
       <LineChart data={data} margin={{ top: 8, right: 36, bottom: 0, left: 0 }}>
         <CartesianGrid
           vertical={false}
@@ -139,6 +149,7 @@ export function ActivityChart({
             dot={false}
             activeDot={{ r: 4, ...GAP }}
             label={endLabel(key)}
+            isAnimationActive={animate}
             animationDuration={900}
           />
         ))}
@@ -160,10 +171,18 @@ const RSVP_KEYS = ['attending', 'maybe', 'declined', 'pending'] as const;
 
 /** Part-to-whole per event: one horizontal stacked bar each. */
 export function RsvpChart({ events }: { events: Dashboard['events'] }) {
+  const animate = !useReducedMotion();
   return (
     <ChartContainer
       config={rsvpConfig}
       className="aspect-auto w-full"
+      role="img"
+      aria-label={events
+        .map(
+          (e) =>
+            `${e.name}: ${e.attending} tham dự, ${e.maybe} chưa chắc, ${e.declined} không đến, ${e.pending} chưa trả lời, ${e.headcount} khách`,
+        )
+        .join('. ')}
       style={{ height: 70 + events.length * 52 }}
     >
       <BarChart
@@ -199,6 +218,7 @@ export function RsvpChart({ events }: { events: Dashboard['events'] }) {
             barSize={24}
             {...GAP}
             radius={i === RSVP_KEYS.length - 1 ? [0, 4, 4, 0] : 0}
+            isAnimationActive={animate}
             animationDuration={900}
           >
             {key === 'pending' && (
@@ -255,10 +275,18 @@ export function BarList({
   const config = {
     [valueKey]: { label: seriesLabel, color: 'var(--chart-1)' },
   } satisfies ChartConfig;
+  const animate = !useReducedMotion();
   return (
     <ChartContainer
       config={config}
       className="aspect-auto w-full"
+      role="img"
+      aria-label={data
+        .map(
+          (r) =>
+            `${r[labelKey]}: ${format(Number(r[valueKey]))}${detail ? ` (${detail(r)})` : ''}`,
+        )
+        .join('; ')}
       style={{ height: 16 + data.length * 36 }}
     >
       <BarChart
@@ -301,6 +329,7 @@ export function BarList({
           fill={`var(--color-${valueKey})`}
           barSize={20}
           radius={[0, 4, 4, 0]}
+          isAnimationActive={animate}
           animationDuration={900}
         >
           <LabelList
@@ -368,6 +397,7 @@ export function Donut({
   }, [slices, max, otherLabel]);
 
   const total = data.reduce((n, s) => n + s.value, 0);
+  const animate = !useReducedMotion();
   const config = Object.fromEntries(
     data.map((s) => [s.key, { label: s.label, color: s.fill }]),
   ) satisfies ChartConfig;
@@ -410,6 +440,7 @@ export function Donut({
             outerRadius="100%"
             paddingAngle={0}
             {...(data.length > 1 ? GAP : { stroke: 'none' })}
+            isAnimationActive={animate}
             animationDuration={900}
           >
             <Label

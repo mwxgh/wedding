@@ -39,6 +39,8 @@ export function MapDialog({
         type="button"
         variant="outline"
         size={size}
+        // phones: 44px tap target (compact `sm` stays as is)
+        className={size === 'sm' ? undefined : 'max-sm:h-11'}
         onClick={() => {
           setLoaded(false);
           setOpen(true);

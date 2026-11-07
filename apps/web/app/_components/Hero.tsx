@@ -62,7 +62,7 @@ export function Hero({
 
   // Names animate only once the cover is out of the way
   const name = (text: string) =>
-    opened ? (
+    opened && !reduce ? (
       <BlurText
         text={text}
         animateBy="words"
@@ -70,7 +70,7 @@ export function Hero({
         className="justify-center"
       />
     ) : (
-      <p className="opacity-0">{text}</p>
+      <p className={opened ? undefined : 'opacity-0'}>{text}</p>
     );
 
   return (
@@ -123,6 +123,9 @@ export function Hero({
                 src={photo}
                 crossOrigin={corsPhoto ? 'anonymous' : undefined}
                 onError={() => setCorsPhoto(false)}
+                // the likely LCP image of the page
+                fetchPriority="high"
+                decoding="async"
                 alt={`Ảnh cưới của ${groomName} và ${brideName}`}
                 className="size-full rounded-[1px] object-cover"
               />
@@ -157,8 +160,8 @@ export function Hero({
             className={`absolute top-[52%] left-1/2 z-30 flex size-14
               -translate-x-1/2 -translate-y-1/2 items-center justify-center
               rounded-full
-              bg-[radial-gradient(circle_at_35%_30%,#f3d995,#c69540_55%,#8f6524)]
-              text-xl text-[#6b4615]
+              bg-[radial-gradient(circle_at_35%_30%,var(--gold-light),var(--gold)_55%,color-mix(in_oklch,var(--gold),black_30%))]
+              text-xl text-[color-mix(in_oklch,var(--gold),black_45%)]
               shadow-[inset_0_-3px_6px_rgb(0_0_0/0.25),0_6px_14px_rgb(60_10_20/0.45)]`}
           >
             <SongHy />
@@ -227,6 +230,7 @@ export function Hero({
         onOpenStart={requestSoundPlay}
         onOpened={onOpened}
         autoOpenAfter={1200}
+        rememberKey="invite-cover-opened"
         seal={<SongHy />}
         greeting={recipient ? 'Thân mời' : undefined}
         recipient={recipient}
