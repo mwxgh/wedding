@@ -103,7 +103,9 @@ jobs:
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           $C --profile tools pull --quiet api web migrate
           docker logout ghcr.io
-          $C run --rm migrate
+          # -T and </dev/null: this script itself arrives on stdin (bash -s);
+          # without them `run` swallows the remaining lines and `up` never runs
+          $C run --rm -T migrate </dev/null
           $C up -d --remove-orphans
           # Remember the release so a manual `up -d` keeps running it
           sed -i "s|^IMAGE_PREFIX=.*|IMAGE_PREFIX=$IMAGE_PREFIX|; s|^TAG=.*|TAG=$TAG|" .env.prod
