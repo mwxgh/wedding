@@ -45,6 +45,8 @@ export interface Invitation {
   side: Side
   relation: Relation
   maxGuests: number
+  /** Free-form guest circle used to filter the admin list (e.g. "FPT", "Bạn cấp 3") */
+  groupName: string | null
   phone: string | null
   note: string | null
   openedAt: string | null

@@ -104,6 +104,7 @@ export class InvitationDto implements InvitationInput {
   @EnumField(Side) side: Side;
   @EnumField(Relation, { optional: true }) relation?: Relation;
   @IntField({ optional: true, min: 1, max: 50 }) maxGuests?: number;
+  @StringField({ optional: true, maxLength: 64 }) groupName?: string;
   @PhoneField({ optional: true }) phone?: string;
   @StringField({ optional: true }) note?: string;
   @ClassField(() => GuestDto, { optional: true, each: true })

@@ -75,6 +75,7 @@ export function invitationSheets(
           value: (i) => RELATION_LABEL[i.relation],
           width: 12,
         },
+        { header: 'Nhóm', value: (i) => i.groupName, width: 18 },
         { header: 'Số khách', value: (i) => i.maxGuests, format: 'int' },
         { header: 'Điện thoại', value: (i) => i.phone, width: 14 },
         {

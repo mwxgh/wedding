@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 
 import {
+  ArrowDownUpIcon,
   CopyIcon,
   EyeIcon,
   MailOpenIcon,
@@ -19,12 +20,15 @@ import type {
   AdminInvitation,
   InvitationInput,
   Relation,
+  RsvpStatus,
   Side,
 } from '@repo/types';
 import { Badge } from '@repo/ui/components/badge';
 import { Button } from '@repo/ui/components/button';
 import { Card } from '@repo/ui/components/card';
 import { Checkbox } from '@repo/ui/components/checkbox';
+import { useConfirm } from '@repo/ui/components/confirm-dialog';
+import { Empty } from '@repo/ui/components/empty';
 import { ExportButton } from '@repo/ui/components/export-button';
 import { Input } from '@repo/ui/components/input';
 import {
@@ -41,6 +45,7 @@ import {
   TableRow,
 } from '@repo/ui/components/table';
 import { Textarea } from '@repo/ui/components/textarea';
+import { matchesQuery } from '@repo/utils';
 
 import { FieldRow, FormField, StatusBadge } from '../../_components/common';
 import {
@@ -49,9 +54,10 @@ import {
   SIDE_LABEL,
   formatDateTime,
 } from '../../_lib/format';
+import { useQueryParam, useRunner, useSetQuery } from '../_lib/actions';
 import { useAdminData, useAuth } from '../_lib/auth';
 import { invitationSheets } from '../_lib/exports';
-import { ErrorAlert, FormDialog, PageHeader } from '../_lib/ui';
+import { ErrorAlert, FormDialog, ListSkeleton, PageHeader } from '../_lib/ui';
 
 type GuestForm = { name: string; isChild: boolean };
 
@@ -61,6 +67,7 @@ interface FormState {
   side: Side;
   relation: Relation;
   maxGuests: number;
+  groupName: string;
   phone: string;
   note: string;
   guests: GuestForm[];
@@ -73,6 +80,7 @@ const emptyForm = (eventIds: string[]): FormState => ({
   side: 'GROOM',
   relation: 'FRIEND',
   maxGuests: 1,
+  groupName: '',
   phone: '',
   note: '',
   guests: [],
@@ -86,6 +94,7 @@ const toForm = (inv: AdminInvitation): FormState => ({
   side: inv.side,
   relation: inv.relation,
   maxGuests: inv.maxGuests,
+  groupName: inv.groupName ?? '',
   phone: inv.phone ?? '',
   note: inv.note ?? '',
   guests: inv.guests.map((g) => ({ name: g.name, isChild: g.isChild })),
@@ -95,25 +104,109 @@ const toForm = (inv: AdminInvitation): FormState => ({
   ),
 });
 
+type RsvpFilter = '' | RsvpStatus | 'UNOPENED';
+type SortKey = '' | 'name' | 'guests' | 'opened';
+
+const SORTS: Record<Exclude<SortKey, ''>, string> = {
+  name: 'Tên A → Z',
+  guests: 'Nhiều khách nhất',
+  opened: 'Mở thiệp gần nhất',
+};
+
+const NO_GROUP = '__none';
+
+const byName = new Intl.Collator('vi-VN', { sensitivity: 'base' });
+
+const sorters: Record<
+  Exclude<SortKey, ''>,
+  (a: AdminInvitation, b: AdminInvitation) => number
+> = {
+  name: (a, b) => byName.compare(a.name, b.name),
+  guests: (a, b) => b.maxGuests - a.maxGuests,
+  opened: (a, b) =>
+    (b.openedAt ? Date.parse(b.openedAt) : 0) -
+    (a.openedAt ? Date.parse(a.openedAt) : 0),
+};
+
+/** Group (e.g. "HUS") shown next to the name so same-name guests are told apart. */
+function groupTag(inv: { groupName: string | null }) {
+  return inv.groupName ? (
+    <Badge variant="secondary" className="ml-1.5 align-middle font-normal">
+      {inv.groupName}
+    </Badge>
+  ) : null;
+}
+
 export default function InvitationsPage() {
   const { api } = useAuth();
+  const confirm = useConfirm();
+  const { run, isBusy } = useRunner();
   const { data, error, reload } =
     useAdminData<AdminInvitation[]>('/admin/invitations');
   const { data: events } = useAdminData<AdminEvent[]>('/admin/events');
   const [form, setForm] = useState<FormState | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'' | Side>('');
-  const [query, setQuery] = useState('');
+  // filters live in the URL so a refresh or a shared link keeps them
+  const [sideParam, setFilter] = useQueryParam('side');
+  const [rsvpParam, setRsvp] = useQueryParam('rsvp');
+  const [sortParam, setSort] = useQueryParam('sort');
+  const [groupParam, setGroup] = useQueryParam('group');
+  const [queryParam, setQueryParam] = useQueryParam('q');
+  // typed text stays local (instant); the URL follows it
+  const [query, setQueryText] = useState(queryParam ?? '');
+  const setQuery = (q: string) => {
+    setQueryText(q);
+    setQueryParam(q.trim() || null);
+  };
+  const setQueryParams = useSetQuery();
+  const filter = (sideParam ?? '') as '' | Side;
+  const rsvp = (rsvpParam ?? '') as RsvpFilter;
+  const sort = (sortParam ?? '') as SortKey;
+  const group = groupParam ?? '';
+  const filtered = !!(filter || rsvp || group || query);
 
-  const list = useMemo(
+  // Groups of the chosen side, with counts, for the filter and the form suggestions
+  const groups = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const i of data ?? []) {
+      if (!i.groupName || (filter && i.side !== filter)) continue;
+      counts.set(i.groupName, (counts.get(i.groupName) ?? 0) + 1);
+    }
+    return [...counts].sort(([a], [b]) => byName.compare(a, b));
+  }, [data, filter]);
+  const allGroups = useMemo(
     () =>
-      (data ?? []).filter(
-        (i) =>
-          (!filter || i.side === filter) &&
-          (!query || i.name.toLowerCase().includes(query.toLowerCase())),
+      [...new Set((data ?? []).flatMap((i) => i.groupName ?? []))].sort(
+        byName.compare,
       ),
-    [data, filter, query],
+    [data],
   );
+  const ungrouped = (data ?? []).some(
+    (i) => !i.groupName && (!filter || i.side === filter),
+  );
+
+  const list = useMemo(() => {
+    const rows = (data ?? []).filter(
+      (i) =>
+        (!filter || i.side === filter) &&
+        (!group ||
+          (group === NO_GROUP ? !i.groupName : i.groupName === group)) &&
+        (!rsvp ||
+          (rsvp === 'UNOPENED'
+            ? !i.openedAt
+            : i.events.some((e) => e.status === rsvp))) &&
+        (!query ||
+          matchesQuery(
+            query,
+            i.name,
+            i.groupName,
+            i.note,
+            i.phone,
+            ...i.guests.map((g) => g.name),
+          )),
+    );
+    return sort && sorters[sort] ? [...rows].sort(sorters[sort]) : rows;
+  }, [data, filter, group, rsvp, query, sort]);
 
   const totalGuests = list.reduce((n, i) => n + i.maxGuests, 0);
 
@@ -129,6 +222,7 @@ export default function InvitationsPage() {
     const { id, tables, ...rest } = form;
     const body: InvitationInput = {
       ...rest,
+      groupName: rest.groupName.trim() || undefined,
       phone: rest.phone || undefined,
       note: rest.note || undefined,
     };
@@ -160,18 +254,125 @@ export default function InvitationsPage() {
   }
 
   async function remove(inv: AdminInvitation) {
-    if (!confirm(`Xoá thiệp mời "${inv.name}"?`)) return;
-    await api(`/admin/invitations/${inv.id}`, { method: 'DELETE' });
-    toast.success('Đã xoá thiệp mời');
-    await reload();
+    if (
+      !(await confirm({
+        title: `Xoá thiệp mời "${inv.name}"?`,
+        description:
+          'Link thiệp sẽ ngừng hoạt động và RSVP của thiệp này bị xoá. Không thể hoàn tác.',
+      }))
+    )
+      return;
+    await run(
+      inv.id,
+      async () => {
+        await api(`/admin/invitations/${inv.id}`, { method: 'DELETE' });
+        await reload();
+      },
+      'Đã xoá thiệp mời',
+    );
   }
 
-  async function copyLink(inv: AdminInvitation) {
-    await navigator.clipboard.writeText(
-      `${window.location.origin}/i/${inv.code}`,
+  const copyLink = (inv: AdminInvitation) =>
+    run(
+      `copy-${inv.id}`,
+      () =>
+        navigator.clipboard.writeText(
+          `${window.location.origin}/i/${inv.code}`,
+        ),
+      `Đã copy link thiệp của ${inv.name}`,
     );
-    toast.success(`Đã copy link thiệp của ${inv.name}`);
-  }
+
+  const actions = (inv: AdminInvitation) => (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="max-sm:size-11"
+        title="Copy link"
+        aria-label={`Copy link thiệp của ${inv.name}`}
+        onClick={() => copyLink(inv)}
+      >
+        <CopyIcon />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="max-sm:size-11"
+        title="Sửa"
+        aria-label={`Sửa thiệp của ${inv.name}`}
+        onClick={() => open(toForm(inv))}
+      >
+        <PencilIcon />
+      </Button>
+      <Button
+        variant="destructive"
+        size="icon"
+        className="max-sm:size-11"
+        title="Xoá"
+        aria-label={`Xoá thiệp của ${inv.name}`}
+        disabled={isBusy(inv.id)}
+        onClick={() => remove(inv)}
+      >
+        <Trash2Icon />
+      </Button>
+    </>
+  );
+
+  const rsvpList = (inv: AdminInvitation) => (
+    <div className="flex flex-col gap-1">
+      {inv.events.map((ev) => (
+        <div key={ev.eventId} className="flex items-center gap-1.5">
+          <StatusBadge status={ev.status}>{RSVP_LABEL[ev.status]}</StatusBadge>
+          <span className="text-xs text-muted-foreground">
+            {ev.event.name}
+            {ev.status === 'ATTENDING' && ` · ${ev.attendingCount} người`}
+            {ev.table && ` · ${ev.table.name}`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const openedLabel = (inv: AdminInvitation) =>
+    inv.openedAt ? (
+      <span className="inline-flex items-center gap-1.5 tabular-nums">
+        <EyeIcon aria-hidden className="size-3.5 text-primary" />
+        {formatDateTime(inv.openedAt)}
+      </span>
+    ) : (
+      <span className="text-muted-foreground">Chưa mở</span>
+    );
+
+  const emptyState: ReactNode =
+    filtered && data?.length ? (
+      <Empty
+        bare
+        icon={<SearchIcon />}
+        title="Không tìm thấy thiệp mời nào"
+        description="Thử từ khoá khác hoặc bỏ bớt bộ lọc."
+        action={
+          <Button
+            variant="outline"
+            onClick={() => {
+              setQueryText('');
+              setQueryParams({ q: null, side: null, rsvp: null, group: null });
+            }}
+          >
+            Xoá bộ lọc
+          </Button>
+        }
+      />
+    ) : (
+      <Empty
+        bare
+        icon={<MailOpenIcon />}
+        title="Chưa có thiệp mời nào"
+        description="Bấm “Tạo thiệp mời” để gửi lời mời đầu tiên."
+      />
+    );
+
+  const ariaSort = (key: SortKey) =>
+    sort === key ? (key === 'name' ? 'ascending' : 'descending') : undefined;
 
   const set = (patch: Partial<FormState>) =>
     setForm((f) => (f ? { ...f, ...patch } : f));
@@ -199,7 +400,7 @@ export default function InvitationsPage() {
           </>
         }
       />
-      <ErrorAlert error={error} />
+      <ErrorAlert error={error} onRetry={reload} />
 
       <div
         className={`mb-4 flex flex-col gap-3 rounded-2xl border bg-card p-3
@@ -215,7 +416,7 @@ export default function InvitationsPage() {
             type="search"
             aria-label="Tìm theo tên"
             className="pl-9"
-            placeholder="Tìm theo tên…"
+            placeholder="Tìm tên, thành viên, SĐT…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -224,13 +425,67 @@ export default function InvitationsPage() {
           aria-label="Lọc theo bên"
           className="w-full sm:w-auto"
           value={filter}
-          onChange={(e) => setFilter(e.target.value as Side | '')}
+          onChange={(e) => setFilter(e.target.value || null)}
         >
-          <NativeSelectOption value="">Tất cả</NativeSelectOption>
+          <NativeSelectOption value="">Cả hai bên</NativeSelectOption>
           <NativeSelectOption value="GROOM">Nhà trai</NativeSelectOption>
           <NativeSelectOption value="BRIDE">Nhà gái</NativeSelectOption>
           <NativeSelectOption value="BOTH">Hai họ</NativeSelectOption>
         </NativeSelect>
+        <NativeSelect
+          aria-label="Lọc theo nhóm"
+          className="w-full sm:w-auto"
+          value={group}
+          onChange={(e) => setGroup(e.target.value || null)}
+        >
+          <NativeSelectOption value="">Mọi nhóm</NativeSelectOption>
+          {groups.map(([g, n]) => (
+            <NativeSelectOption key={g} value={g}>
+              {g} ({n})
+            </NativeSelectOption>
+          ))}
+          {ungrouped && (
+            <NativeSelectOption value={NO_GROUP}>
+              Chưa có nhóm
+            </NativeSelectOption>
+          )}
+        </NativeSelect>
+        <NativeSelect
+          aria-label="Lọc theo RSVP"
+          className="w-full sm:w-auto"
+          value={rsvp}
+          onChange={(e) => setRsvp(e.target.value || null)}
+        >
+          <NativeSelectOption value="">Mọi trạng thái</NativeSelectOption>
+          {Object.entries(RSVP_LABEL).map(([v, l]) => (
+            <NativeSelectOption key={v} value={v}>
+              {l}
+            </NativeSelectOption>
+          ))}
+          <NativeSelectOption value="UNOPENED">
+            Chưa mở thiệp
+          </NativeSelectOption>
+        </NativeSelect>
+        <div className="relative w-full sm:w-auto">
+          <ArrowDownUpIcon
+            aria-hidden
+            className={`pointer-events-none absolute top-1/2 left-3 z-10 size-4
+              -translate-y-1/2 text-muted-foreground`}
+          />
+          <NativeSelect
+            aria-label="Sắp xếp"
+            className="w-full sm:w-auto [&_select]:pl-9"
+            value={sort}
+            onChange={(e) => setSort(e.target.value || null)}
+          >
+            <NativeSelectOption value="">Mới tạo trước</NativeSelectOption>
+            {Object.entries(SORTS).map(([v, l]) => (
+              <NativeSelectOption key={v} value={v}>
+                {l}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
         <p
           className={`flex items-center gap-2 text-sm text-muted-foreground
             tabular-nums sm:ml-auto`}
@@ -249,15 +504,51 @@ export default function InvitationsPage() {
         </p>
       </div>
 
-      <Card className="py-0">
+      {!data && !error && <ListSkeleton />}
+
+      {/* phone: one card per invitation, actions always in reach */}
+      {data && (
+        <ul className="grid gap-3 sm:hidden">
+          {list.map((inv) => (
+            <li key={inv.id}>
+              <Card className="gap-3 px-4 py-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-foreground">
+                      {inv.name}
+                      {groupTag(inv)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {SIDE_LABEL[inv.side]} · {RELATION_LABEL[inv.relation]} ·{' '}
+                      <span className="tabular-nums">
+                        tối đa {inv.maxGuests} khách
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                {rsvpList(inv)}
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  {openedLabel(inv)}
+                  <div className="flex gap-1">{actions(inv)}</div>
+                </div>
+              </Card>
+            </li>
+          ))}
+          {!list.length && <li>{emptyState}</li>}
+        </ul>
+      )}
+
+      <Card className={data ? 'py-0 max-sm:hidden' : 'hidden'}>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tên</TableHead>
+              <TableHead aria-sort={ariaSort('name')}>Tên</TableHead>
               <TableHead>Bên</TableHead>
-              <TableHead className="text-right">Khách</TableHead>
+              <TableHead className="text-right" aria-sort={ariaSort('guests')}>
+                Khách
+              </TableHead>
               <TableHead>RSVP</TableHead>
-              <TableHead>Đã mở</TableHead>
+              <TableHead aria-sort={ariaSort('opened')}>Đã mở</TableHead>
               <TableHead>
                 <span className="sr-only">Thao tác</span>
               </TableHead>
@@ -277,7 +568,10 @@ export default function InvitationsPage() {
                       {inv.name.trim().charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground">{inv.name}</p>
+                      <p className="font-medium text-foreground">
+                        {inv.name}
+                        {groupTag(inv)}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {RELATION_LABEL[inv.relation]}
                         {inv.guests.length > 0 &&
@@ -298,96 +592,19 @@ export default function InvitationsPage() {
                     {inv.maxGuests}
                   </span>
                 </TableCell>
-                <TableCell className="align-top">
-                  <div className="flex flex-col gap-1">
-                    {inv.events.map((ev) => (
-                      <div
-                        key={ev.eventId}
-                        className="flex items-center gap-1.5"
-                      >
-                        <StatusBadge status={ev.status}>
-                          {RSVP_LABEL[ev.status]}
-                        </StatusBadge>
-                        <span className="text-xs text-muted-foreground">
-                          {ev.event.name}
-                          {ev.status === 'ATTENDING' &&
-                            ` · ${ev.attendingCount} người`}
-                          {ev.table && ` · ${ev.table.name}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </TableCell>
+                <TableCell className="align-top">{rsvpList(inv)}</TableCell>
                 <TableCell className="align-top text-xs">
-                  {inv.openedAt ? (
-                    <span
-                      className={
-                        'inline-flex items-center gap-1.5 tabular-nums'
-                      }
-                    >
-                      <EyeIcon aria-hidden className="size-3.5 text-primary" />
-                      {formatDateTime(inv.openedAt)}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Chưa mở</span>
-                  )}
+                  {openedLabel(inv)}
                 </TableCell>
                 <TableCell className="align-top">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="max-sm:size-11"
-                      title="Copy link"
-                      aria-label={`Copy link thiệp của ${inv.name}`}
-                      onClick={() => copyLink(inv)}
-                    >
-                      <CopyIcon />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="max-sm:size-11"
-                      title="Sửa"
-                      aria-label={`Sửa thiệp của ${inv.name}`}
-                      onClick={() => open(toForm(inv))}
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      className="max-sm:size-11"
-                      title="Xoá"
-                      aria-label={`Xoá thiệp của ${inv.name}`}
-                      onClick={() => remove(inv)}
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
+                  <div className="flex justify-end gap-1">{actions(inv)}</div>
                 </TableCell>
               </TableRow>
             ))}
             {data && !list.length && (
               <TableRow>
-                <TableCell colSpan={6} className="py-14">
-                  <div
-                    className={`flex flex-col items-center gap-2 text-center
-                    text-muted-foreground`}
-                  >
-                    <span
-                      className={`grid size-12 place-items-center rounded-full
-                      bg-secondary text-secondary-foreground`}
-                    >
-                      <MailOpenIcon aria-hidden className="size-5" />
-                    </span>
-                    <p className="font-medium text-foreground">
-                      Chưa có thiệp mời nào
-                    </p>
-                    <p className="text-sm">
-                      Bấm “Tạo thiệp mời” để gửi lời mời đầu tiên.
-                    </p>
-                  </div>
+                <TableCell colSpan={6} className="whitespace-normal">
+                  {emptyState}
                 </TableCell>
               </TableRow>
             )}
@@ -400,6 +617,7 @@ export default function InvitationsPage() {
         title={form?.id ? 'Sửa thiệp mời' : 'Tạo thiệp mời'}
         description="Mỗi thiệp có một đường link riêng để khách xem và RSVP."
         error={formError}
+        value={form}
         onClose={() => setForm(null)}
         onSubmit={save}
       >
@@ -450,6 +668,20 @@ export default function InvitationsPage() {
                 />
               </FormField>
             </FieldRow>
+            <FormField label="Nhóm (VD: FPT, Bạn cấp 3)">
+              <Input
+                list="invitation-groups"
+                maxLength={64}
+                autoComplete="off"
+                value={form.groupName}
+                onChange={(e) => set({ groupName: e.target.value })}
+              />
+            </FormField>
+            <datalist id="invitation-groups">
+              {allGroups.map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
             <FormField label="Số điện thoại">
               <Input
                 value={form.phone}

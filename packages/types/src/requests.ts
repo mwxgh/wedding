@@ -98,6 +98,7 @@ export interface InvitationInput {
   side: Side;
   relation?: Relation;
   maxGuests?: number;
+  groupName?: string;
   phone?: string;
   note?: string;
   guests?: GuestInput[];

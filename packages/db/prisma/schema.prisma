@@ -123,6 +123,8 @@ model Invitation {
   side      Side
   relation  Relation          @default(OTHER)
   maxGuests Int               @default(1)
+  /// Free-form guest circle used to filter the admin list (e.g. "FPT", "Bạn cấp 3")
+  groupName String?           @db.VarChar(64)
   phone     String?
   note      String?           @db.Text
   openedAt  DateTime?
@@ -135,6 +137,7 @@ model Invitation {
   payments  PayosPayment[]
 
   @@index([side])
+  @@index([groupName])
 }
 
 model Guest {
