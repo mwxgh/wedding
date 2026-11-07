@@ -19,7 +19,6 @@
     "infra:stop": "pnpm infra stop",
     "infra:ps": "pnpm infra ps",
     "infra:logs": "pnpm infra logs -f --tail=100",
-    "prod:pull": "bash deploy/pull-prod.sh",
     "db:generate": "pnpm --filter @repo/db db:generate",
     "db:types": "pnpm --filter @repo/db db:types",
     "db:migrate": "pnpm --filter @repo/db db:migrate",
