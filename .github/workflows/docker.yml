@@ -96,7 +96,10 @@ jobs:
             bash -s <<'EOF'
           set -euo pipefail
           cd /root/wedding
+          # docker-compose.override.yml is server-only (never uploaded), for
+          # host-specific tweaks such as publishing ports
           C="docker compose -p wedding -f docker-compose.prod.yml --env-file .env.prod"
+          [ -f docker-compose.override.yml ] && C="$C -f docker-compose.override.yml"
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
           $C --profile tools pull --quiet api web migrate
           docker logout ghcr.io
