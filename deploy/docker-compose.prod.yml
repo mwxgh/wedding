@@ -26,10 +26,17 @@ services:
       - --collation-server=utf8mb4_unicode_ci
       - --innodb-buffer-pool-size=128M
       - --performance-schema=OFF
+    # Public so local dev can connect straight to prod (DATABASE_URL=...@<server-ip>:3306)
+    ports:
+      - '${MYSQL_PUBLIC_PORT:-3306}:3306'
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      test:
+        [
+          'CMD-SHELL',
+          'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent',
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

@@ -35,3 +35,6 @@ yarn-error.log*
 *.pem
 
 .claude
+
+# Prod data pulled by deploy/pull-prod.sh
+deploy/backups/
