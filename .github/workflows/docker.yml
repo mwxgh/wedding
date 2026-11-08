@@ -101,6 +101,9 @@ jobs:
           C="docker compose -p wedding -f docker-compose.prod.yml --env-file .env.prod"
           [ -f docker-compose.override.yml ] && C="$C -f docker-compose.override.yml"
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          # Every release is a new sha tag; drop the ones no container uses
+          # (all re-pullable from ghcr) or the small disk fills up
+          docker image prune -af >/dev/null
           $C --profile tools pull --quiet api web migrate
           docker logout ghcr.io
           # -T and </dev/null: this script itself arrives on stdin (bash -s);
@@ -112,7 +115,7 @@ jobs:
           # Remember the release so a manual `up -d` keeps running it
           sed -i "s|^IMAGE_PREFIX=.*|IMAGE_PREFIX=$IMAGE_PREFIX|; s|^TAG=.*|TAG=$TAG|" .env.prod
           grep -q '^IMAGE_PREFIX=' .env.prod || echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> .env.prod
-          docker image prune -f >/dev/null
+          docker image prune -af >/dev/null
           EOF
 
       - name: Smoke test
