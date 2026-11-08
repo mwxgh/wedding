@@ -2,9 +2,8 @@
 
 import { useRef, useState } from 'react';
 
-import { QuoteIcon, SendIcon } from 'lucide-react';
+import { SendIcon } from 'lucide-react';
 
-import type { PublicGuestbookEntry } from '@repo/types';
 import { Button } from '@repo/ui/components/button';
 import { Card, CardContent } from '@repo/ui/components/card';
 import { Input } from '@repo/ui/components/input';
@@ -14,11 +13,9 @@ import { clientFetch } from '../_lib/api';
 import { FormAlert, FormField } from './common';
 
 export function Guestbook({
-  entries,
   invitationCode,
   defaultName = '',
 }: {
-  entries: PublicGuestbookEntry[];
   invitationCode?: string;
   defaultName?: string;
 }) {
@@ -54,74 +51,47 @@ export function Guestbook({
   }
 
   return (
-    <>
-      <Card className="mx-auto max-w-2xl">
-        <CardContent className="sm:px-8 sm:py-2">
-          <form onSubmit={submit} className="flex flex-col gap-4">
-            <FormField label="Tên của bạn" htmlFor="gb-name">
-              <Input
-                id="gb-name"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                required
-                maxLength={100}
-                autoComplete="name"
-              />
-            </FormField>
-            <FormField label="Lời chúc" htmlFor="gb-message">
-              <Textarea
-                id="gb-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                required
-                maxLength={2000}
-                className="min-h-28"
-              />
-            </FormField>
-            <div
-              ref={statusRef}
-              className="flex scroll-mb-24 flex-col gap-3 empty:hidden"
-            >
-              {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
-              {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
-            </div>
-            <Button
-              type="submit"
-              size="lg"
-              disabled={state.loading}
-              className="mt-1 max-sm:h-11 sm:self-end"
-            >
-              <SendIcon data-icon="inline-start" aria-hidden />
-              {state.loading ? 'Đang gửi…' : 'Gửi lời chúc'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {entries.length > 0 && (
-        <div className="mt-12 columns-1 gap-4 sm:columns-2 lg:columns-3">
-          {entries.map((e) => (
-            <Card
-              key={e.id}
-              className={`mb-4 break-inside-avoid transition-shadow
-              hover:shadow-lift`}
-            >
-              <CardContent className="flex flex-col gap-3">
-                <QuoteIcon aria-hidden className="size-5 text-gold" />
-                <p
-                  className={`leading-relaxed whitespace-pre-line
-                  text-foreground/90`}
-                >
-                  {e.message}
-                </p>
-                <p className="font-serif text-base font-medium text-rose-deep">
-                  — {e.authorName}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </>
+    <Card className="mx-auto max-w-2xl">
+      <CardContent className="sm:px-8 sm:py-2">
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <FormField label="Tên của bạn" htmlFor="gb-name">
+            <Input
+              id="gb-name"
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              required
+              maxLength={100}
+              autoComplete="name"
+            />
+          </FormField>
+          <FormField label="Lời chúc" htmlFor="gb-message">
+            <Textarea
+              id="gb-message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              required
+              maxLength={2000}
+              className="min-h-28"
+            />
+          </FormField>
+          <div
+            ref={statusRef}
+            className="flex scroll-mb-24 flex-col gap-3 empty:hidden"
+          >
+            {state.ok && <FormAlert tone="success">{state.ok}</FormAlert>}
+            {state.error && <FormAlert tone="error">{state.error}</FormAlert>}
+          </div>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={state.loading}
+            className="mt-1 max-sm:h-11 sm:self-end"
+          >
+            <SendIcon data-icon="inline-start" aria-hidden />
+            {state.loading ? 'Đang gửi…' : 'Gửi lời chúc'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

@@ -20,6 +20,7 @@ import { LoveStory } from './LoveStory';
 import { PhotoUpload } from './PhotoUpload';
 import { Reveal } from './Reveal';
 import { RsvpForm } from './RsvpForm';
+import { WishWall } from './WishWall';
 import { Container, Section, SectionTitle } from './common';
 import { CloudMotif, PatternBackdrop, SongHy } from './ornaments';
 
@@ -148,11 +149,15 @@ export async function WeddingPage({
           <Reveal>
             <SectionTitle script="Sổ lưu bút" title="Gửi lời chúc" />
             <Guestbook
-              entries={guestbook ?? []}
               invitationCode={invitation?.code}
               defaultName={invitation?.name}
             />
           </Reveal>
+        </Section>
+
+        <Section id="loi-chuc" alt>
+          <SectionTitle script="Yêu thương" title="Lời chúc từ mọi người" />
+          <WishWall initial={guestbook ?? []} />
         </Section>
 
         {wedding.giftChannels.length > 0 && (
