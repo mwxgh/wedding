@@ -12,6 +12,7 @@ import { AuthModule } from './auth/auth.module';
 import { config } from './config';
 import { PayosModule } from './payos/payos.module';
 import { PhotoModule } from './photos/photo.module';
+import { GuestbookFeed } from './public/guestbook-feed.service';
 import { PublicController } from './public/public.controller';
 import { StorageModule } from './storage/storage.module';
 
@@ -32,5 +33,6 @@ import { StorageModule } from './storage/storage.module';
     FinanceController,
     PlanController,
   ],
+  providers: [GuestbookFeed],
 })
 export class AppModule {}

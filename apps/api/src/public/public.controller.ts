@@ -3,13 +3,17 @@ import {
   Body,
   Controller,
   Get,
+  type MessageEvent,
   NotFoundException,
   Param,
   Post,
+  Sse,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+import type { Observable } from 'rxjs';
 
 import { ModerationStatus, RsvpStatus } from '@repo/db';
 import { PrismaService } from '@repo/db/nest';
@@ -25,6 +29,7 @@ import {
 import { config } from '../config';
 import { PayosService } from '../payos/payos.service';
 import { PhotoService } from '../photos/photo.service';
+import { GuestbookFeed } from './guestbook-feed.service';
 import { GuestPhotoDto, GuestbookDto, RsvpDto } from './public.dto';
 
 @Controller('public')
@@ -33,6 +38,7 @@ export class PublicController {
     private readonly prisma: PrismaService,
     private readonly photos: PhotoService,
     private readonly payos: PayosService,
+    private readonly guestbookFeed: GuestbookFeed,
   ) {}
 
   @Get('wedding')
@@ -124,6 +130,12 @@ export class PublicController {
       take: 200,
       select: publicGuestbookSelect,
     });
+  }
+
+  /** Server-sent events: each entry as soon as an admin approves it */
+  @Sse('guestbook/stream')
+  guestbookStream(): Observable<MessageEvent> {
+    return this.guestbookFeed.stream();
   }
 
   @Post('guestbook')

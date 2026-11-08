@@ -38,6 +38,7 @@ import {
 } from '../common/responses';
 import { config } from '../config';
 import { PhotoService } from '../photos/photo.service';
+import { GuestbookFeed } from '../public/guestbook-feed.service';
 import {
   AlbumDto,
   ModerationDto,
@@ -54,6 +55,7 @@ export class AdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly photos: PhotoService,
+    private readonly guestbookFeed: GuestbookFeed,
   ) {}
 
   @Get('dashboard')
@@ -228,14 +230,19 @@ export class AdminController {
   }
 
   @Patch('guestbook/:id')
-  moderateGuestbook(
+  async moderateGuestbook(
     @Param('id') id: string,
     @Body() dto: ModerationDto,
   ): Promise<GuestbookEntry> {
-    return this.prisma.guestbookEntry.update({
+    const entry = await this.prisma.guestbookEntry.update({
       where: { id },
       data: { status: dto.status },
     });
+    if (entry.status === ModerationStatus.APPROVED) {
+      const { authorName, message, createdAt } = entry;
+      this.guestbookFeed.publish({ id, authorName, message, createdAt });
+    }
+    return entry;
   }
 
   @Delete('guestbook/:id')
