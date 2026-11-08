@@ -4,11 +4,21 @@
 }
 
 api.{$DOMAIN} {
-	encode zstd gzip
-	request_body {
-		max_size 20MB
+	# Server-sent events: no compression, flush every event straight away
+	@stream path /public/guestbook/stream
+	handle @stream {
+		reverse_proxy api:3001 {
+			flush_interval -1
+		}
 	}
-	reverse_proxy api:3001
+
+	handle {
+		encode zstd gzip
+		request_body {
+			max_size 20MB
+		}
+		reverse_proxy api:3001
+	}
 }
 
 s3.{$DOMAIN} {

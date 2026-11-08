@@ -107,6 +107,8 @@ jobs:
           # without them `run` swallows the remaining lines and `up` never runs
           $C run --rm -T migrate </dev/null
           $C up -d --remove-orphans
+          # Caddyfile is a bind mount: pick up changes uploaded above
+          $C exec -T caddy caddy reload --config /etc/caddy/Caddyfile </dev/null
           # Remember the release so a manual `up -d` keeps running it
           sed -i "s|^IMAGE_PREFIX=.*|IMAGE_PREFIX=$IMAGE_PREFIX|; s|^TAG=.*|TAG=$TAG|" .env.prod
           grep -q '^IMAGE_PREFIX=' .env.prod || echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> .env.prod
