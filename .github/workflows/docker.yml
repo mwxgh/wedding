@@ -48,12 +48,50 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # package: the workspace whose changes (turbo follows its dependencies)
+        # need a new image; paths: files outside any package that do too (this
+        # workflow included: build-args and targets live here)
         include:
-          - { image: api, file: api, target: runner }
-          - { image: migrate, file: api, target: migrate }
-          - { image: web, file: web, target: runner }
+          - image: api
+            file: api
+            target: runner
+            package: api
+            paths: deploy/api.Dockerfile .dockerignore .github/workflows/docker.yml
+          - image: migrate
+            file: api
+            target: migrate
+            package: '@repo/db'
+            paths: deploy/api.Dockerfile .dockerignore pnpm-workspace.yaml .github/workflows/docker.yml
+          - image: web
+            file: web
+            target: runner
+            package: web
+            paths: deploy/web.Dockerfile .dockerignore .github/workflows/docker.yml
     steps:
+      # Blobless full history: `turbo query affected` needs the base commit
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      # Unchanged image → retag the previous release's one instead of building.
+      # Builds anyway on manual runs, a first push, or when the base is unknown
+      - id: affected
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          build=true
+          if [ "${{ github.event_name }}" = push ] && [ -n "$BEFORE" ] \
+            && git cat-file -e "$BEFORE^{commit}" 2>/dev/null \
+            && git diff --quiet "$BEFORE" HEAD -- ${{ matrix.paths }}; then
+            v=$(sed -n "s/^  'turbo': //p" pnpm-workspace.yaml)
+            # Exit 0: nothing affected, 1: affected, 2: error (→ build)
+            if npx -y "turbo@$v" query affected --base "$BEFORE" --head HEAD \
+              --packages '${{ matrix.package }}' --exit-code; then
+              build=false
+            fi
+          fi
+          echo "build=$build" | tee -a "$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@v4
 
@@ -72,7 +110,20 @@ jobs:
             type=sha,format=long
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - uses: docker/build-push-action@v7
+      # Point this release's tags at the previous release's image (no pull or
+      # push of layers). If that image is missing, fall through to a build
+      - id: retag
+        if: steps.affected.outputs.build == 'false'
+        continue-on-error: true
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          img="$IMAGE_PREFIX-${{ matrix.image }}"
+          docker buildx imagetools create \
+            -t "$img:sha-$GITHUB_SHA" -t "$img:latest" "$img:sha-$BEFORE"
+
+      - if: steps.affected.outputs.build == 'true' || steps.retag.outcome == 'failure'
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: deploy/${{ matrix.file }}.Dockerfile
