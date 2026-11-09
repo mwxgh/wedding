@@ -54,5 +54,6 @@ catalog:
 
 allowBuilds:
   '@prisma/engines': true
+  '@swc/core': true
   'esbuild': true
   'prisma': true
