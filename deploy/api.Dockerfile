@@ -10,7 +10,26 @@ WORKDIR /app
 
 # --- Prune the monorepo down to `api` and its workspace dependencies
 FROM base AS prepare
-RUN npm install -g turbo@2.11.7
+RUN apk add --no-cache curl
+# Standalone turbo binary (as in turbo's Docker guide), pinned to the catalog
+# version and checksum-verified; only re-downloaded when the catalog changes
+COPY pnpm-workspace.yaml /tmp/
+RUN set -eu; \
+    v=$(sed -n "s/^  'turbo': //p" /tmp/pnpm-workspace.yaml); test -n "$v"; \
+    case "$(uname -m)" in \
+      x86_64) t=x86_64-unknown-linux-musl ;; \
+      aarch64) t=aarch64-unknown-linux-musl ;; \
+      *) echo 'Unsupported architecture' >&2; exit 1 ;; \
+    esac; \
+    a="turbo-$v-$t.tar.gz"; r="https://github.com/vercel/turborepo/releases/download/v$v"; \
+    cd /tmp; \
+    curl -fsSL "$r/SHA256SUMS" -o SHA256SUMS; \
+    curl -fsSL "$r/$a" -o "$a"; \
+    awk -v n="$a" '$2 == n && NF == 2 { print }' SHA256SUMS > sum; \
+    [ "$(wc -l < sum)" -eq 1 ]; sha256sum -c sum; \
+    [ "$(tar -tzf "$a")" = turbo ]; \
+    tar -xzf "$a" -C /usr/local/bin turbo; chmod 755 /usr/local/bin/turbo; \
+    rm SHA256SUMS sum "$a" pnpm-workspace.yaml
 COPY . .
 RUN turbo prune api --docker
 
