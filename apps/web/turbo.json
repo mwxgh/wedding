@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      // Next inlines NEXT_PUBLIC_* (from env or .env files) into the bundle;
+      // only web reads them at build time, so only web hashes them
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": ["NEXT_PUBLIC_API_URL"]
+    }
+  }
+}
