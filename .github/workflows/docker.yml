@@ -19,6 +19,31 @@ env:
   DOMAIN: maitinh-nguyenhanh.love
 
 jobs:
+  # The api builds with SWC, which does not type-check: this job is the gate.
+  # Runs beside `build`, so it adds no time unless it fails.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Turbo's local cache (.turbo/cache); unchanged packages replay their logs
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo run lint check-types test
+
   build:
     runs-on: ubuntu-latest
     strategy:
@@ -61,7 +86,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
 
   deploy:
-    needs: build
+    needs: [check, build]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
