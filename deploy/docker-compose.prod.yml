@@ -1,5 +1,7 @@
-# Production stack for a single small VPS (1 vCPU / 2 GB): MySQL, RustFS,
-# api, web and Caddy (automatic HTTPS). Redis and phpMyAdmin are left out.
+# Production stack for a single small VPS (1 vCPU / 2 GB): PostgreSQL, RustFS,
+# api, web and Caddy (automatic HTTPS). Redis is left out.
+# Apps share one Postgres user/database; each lives in its own schema
+# (POSTGRES_SCHEMA), so a second project can reuse the same account.
 # Usage (on the server, in the deploy directory):
 #   cp .env.prod.example .env.prod   # fill it in
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
@@ -11,29 +13,29 @@ x-common: &common
     options: { max-size: '10m', max-file: '3' }
 
 services:
-  mysql:
+  postgres:
     <<: *common
-    image: mysql:8.4
-    mem_limit: 512m
+    image: postgres:${POSTGRES_VERSION:-17-alpine}
+    mem_limit: 384m
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?required}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-wedding}
-      MYSQL_USER: ${MYSQL_USER:-wedding}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
       TZ: Asia/Ho_Chi_Minh
     command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --innodb-buffer-pool-size=128M
-      - --performance-schema=OFF
+      - postgres
+      - -c
+      - shared_buffers=64MB
+      - -c
+      - max_connections=50
     volumes:
-      - mysql-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 30s
+      start_period: 10s
 
   rustfs:
     <<: *common
@@ -54,13 +56,13 @@ services:
     image: ${IMAGE_PREFIX:-wedding}-api:${TAG:-latest}
     mem_limit: 320m
     depends_on:
-      mysql: { condition: service_healthy }
+      postgres: { condition: service_healthy }
       rustfs: { condition: service_started }
     environment:
       PORT: 3001
       WEB_ORIGIN: https://${DOMAIN:?required}
       PUBLIC_SITE_URL: https://${DOMAIN}
-      DATABASE_URL: mysql://${MYSQL_USER:-wedding}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-wedding}
+      DATABASE_URL: &database-url postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-postgres}?schema=${POSTGRES_SCHEMA:-wedding}
       JWT_SECRET: ${JWT_SECRET:?required}
       JWT_EXPIRES_IN: 7d
       # Presigned photo URLs must point at the public host; requests from the
@@ -87,15 +89,15 @@ services:
       API_URL: http://api:3001
       NODE_OPTIONS: --max-old-space-size=256
 
-  # Applies pending Prisma migrations, then exits:
+  # Syncs the Prisma schema to the database (`prisma db push`), then exits:
   #   docker compose ... run --rm migrate
   migrate:
     image: ${IMAGE_PREFIX:-wedding}-migrate:${TAG:-latest}
     profiles: [tools]
     depends_on:
-      mysql: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     environment:
-      DATABASE_URL: mysql://${MYSQL_USER:-wedding}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE:-wedding}
+      DATABASE_URL: *database-url
 
   caddy:
     <<: *common
@@ -114,7 +116,7 @@ services:
       - caddy-config:/config
 
 volumes:
-  mysql-data:
+  postgres-data:
   rustfs-data:
   caddy-data:
   caddy-config:

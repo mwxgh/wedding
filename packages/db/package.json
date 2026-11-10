@@ -24,16 +24,14 @@
     "lint": "eslint --max-warnings 0",
     "db:generate": "prisma generate --generator client",
     "db:types": "prisma generate --generator types",
-    "db:migrate": "prisma migrate dev && prisma generate",
     "db:push": "prisma db push && prisma generate",
-    "db:deploy": "prisma migrate deploy",
     "db:check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
     "db:seed": "pnpm db:generate && prisma db seed",
     "db:seed:demo": "pnpm db:generate && tsx prisma/seed-demo.ts",
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/adapter-mariadb": "catalog:",
+    "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:"
   },
   "devDependencies": {

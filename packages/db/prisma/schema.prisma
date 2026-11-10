@@ -12,7 +12,7 @@ generator types {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 enum Side {
@@ -83,52 +83,56 @@ enum PlanCategory {
 
 model WeddingInfo {
   id            Int      @id @default(1)
-  brideName     String
-  groomName     String
-  brideParents  String?
-  groomParents  String?
-  weddingDate   DateTime
-  story         String?  @db.Text
-  coverPhotoKey String?
+  brideName     String   @map("bride_name")
+  groomName     String   @map("groom_name")
+  brideParents  String?  @map("bride_parents")
+  groomParents  String?  @map("groom_parents")
+  weddingDate   DateTime @map("wedding_date") @db.Timestamptz(3)
+  story         String?
+  coverPhotoKey String?  @map("cover_photo_key")
   /// Total wedding budget target, VND
   budget        BigInt?
-  updatedAt     DateTime @updatedAt
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("wedding_info")
 }
 
 model Event {
-  id          String            @id @default(uuid(7)) @db.Char(36)
+  id          String            @id @default(uuid(7)) @db.Uuid
   name        String
   side        Side
   /// Days from WeddingInfo.weddingDate (0 = the wedding day, -1 = the day before)
-  dayOffset   Int               @default(0)
+  dayOffset   Int               @default(0) @map("day_offset")
   /// Vietnam wall-clock time, HH:mm
-  startTime   String            @default("00:00") @db.Char(5)
-  endTime     String?           @db.Char(5)
+  startTime   String            @default("00:00") @map("start_time") @db.Char(5)
+  endTime     String?           @map("end_time") @db.Char(5)
   /// Derived from weddingDate + dayOffset + startTime/endTime; never set directly
-  startAt     DateTime
-  endAt       DateTime?
-  venueName   String
+  startAt     DateTime          @map("start_at") @db.Timestamptz(3)
+  endAt       DateTime?         @map("end_at") @db.Timestamptz(3)
+  venueName   String            @map("venue_name")
   address     String
-  mapUrl      String?           @db.Text
-  sortOrder   Int               @default(0)
+  mapUrl      String?           @map("map_url")
+  sortOrder   Int               @default(0) @map("sort_order")
   tables      Table[]
   invitations InvitationEvent[]
   gifts       Gift[]
+
+  @@map("events")
 }
 
 model Invitation {
-  id        String            @id @default(uuid(7)) @db.Char(36)
+  id        String            @id @default(uuid(7)) @db.Uuid
   code      String            @unique @db.VarChar(16)
   name      String
   side      Side
   relation  Relation          @default(OTHER)
-  maxGuests Int               @default(1)
+  maxGuests Int               @default(1) @map("max_guests")
   /// Free-form guest circle used to filter the admin list (e.g. "FPT", "Bạn cấp 3")
-  groupName String?           @db.VarChar(64)
+  groupName String?           @map("group_name") @db.VarChar(64)
   phone     String?
-  note      String?           @db.Text
-  openedAt  DateTime?
-  createdAt DateTime          @default(now())
+  note      String?
+  openedAt  DateTime?         @map("opened_at") @db.Timestamptz(3)
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   guests    Guest[]
   events    InvitationEvent[]
   guestbook GuestbookEntry[]
@@ -138,27 +142,29 @@ model Invitation {
 
   @@index([side])
   @@index([groupName])
+  @@map("invitations")
 }
 
 model Guest {
-  id           String     @id @default(uuid(7)) @db.Char(36)
-  invitationId String     @db.Char(36)
+  id           String     @id @default(uuid(7)) @db.Uuid
+  invitationId String     @map("invitation_id") @db.Uuid
   name         String
-  isChild      Boolean    @default(false)
-  dietaryNote  String?
+  isChild      Boolean    @default(false) @map("is_child")
+  dietaryNote  String?    @map("dietary_note")
   invitation   Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
 
   @@index([invitationId])
+  @@map("guests")
 }
 
 model InvitationEvent {
-  invitationId   String     @db.Char(36)
-  eventId        String     @db.Char(36)
+  invitationId   String     @map("invitation_id") @db.Uuid
+  eventId        String     @map("event_id") @db.Uuid
   status         RsvpStatus @default(PENDING)
-  attendingCount Int        @default(0)
-  message        String?    @db.Text
-  respondedAt    DateTime?
-  tableId        String?    @db.Char(36)
+  attendingCount Int        @default(0) @map("attending_count")
+  message        String?
+  respondedAt    DateTime?  @map("responded_at") @db.Timestamptz(3)
+  tableId        String?    @map("table_id") @db.Uuid
   invitation     Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
   event          Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   table          Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
@@ -166,64 +172,70 @@ model InvitationEvent {
   @@id([invitationId, eventId])
   @@index([eventId, status])
   @@index([tableId])
+  @@map("invitation_events")
 }
 
 model Table {
-  id       String            @id @default(uuid(7)) @db.Char(36)
-  eventId  String            @db.Char(36)
+  id       String            @id @default(uuid(7)) @db.Uuid
+  eventId  String            @map("event_id") @db.Uuid
   name     String
   capacity Int               @default(10)
   event    Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   seats    InvitationEvent[]
 
   @@unique([eventId, name])
+  @@map("tables")
 }
 
 model Album {
-  id        String  @id @default(uuid(7)) @db.Char(36)
+  id        String  @id @default(uuid(7)) @db.Uuid
   title     String
-  isGuest   Boolean @default(false)
-  sortOrder Int     @default(0)
+  isGuest   Boolean @default(false) @map("is_guest")
+  sortOrder Int     @default(0) @map("sort_order")
   photos    Photo[]
+
+  @@map("albums")
 }
 
 model Photo {
-  id           String           @id @default(uuid(7)) @db.Char(36)
-  albumId      String?          @db.Char(36)
-  objectKey    String           @unique
-  mimeType     String
-  sizeBytes    Int
+  id           String           @id @default(uuid(7)) @db.Uuid
+  albumId      String?          @map("album_id") @db.Uuid
+  objectKey    String           @unique @map("object_key")
+  mimeType     String           @map("mime_type")
+  sizeBytes    Int              @map("size_bytes")
   width        Int?
   height       Int?
   caption      String?
   status       ModerationStatus @default(PENDING)
-  invitationId String?          @db.Char(36)
-  createdAt    DateTime         @default(now())
+  invitationId String?          @map("invitation_id") @db.Uuid
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   album        Album?           @relation(fields: [albumId], references: [id], onDelete: SetNull)
   invitation   Invitation?      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([albumId, status])
   @@index([invitationId])
+  @@map("photos")
 }
 
 model GuestbookEntry {
-  id           String           @id @default(uuid(7)) @db.Char(36)
-  invitationId String?          @db.Char(36)
-  authorName   String
-  message      String           @db.Text
+  id           String           @id @default(uuid(7)) @db.Uuid
+  invitationId String?          @map("invitation_id") @db.Uuid
+  authorName   String           @map("author_name")
+  message      String
   status       ModerationStatus @default(PENDING)
-  createdAt    DateTime         @default(now())
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   invitation   Invitation?      @relation(fields: [invitationId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([invitationId])
+  @@map("guestbook_entries")
 }
 
 model Gift {
-  id           String      @id @default(uuid(7)) @db.Char(36)
-  invitationId String?     @db.Char(36)
-  eventId      String?     @db.Char(36)
-  giverName    String
+  id           String        @id @default(uuid(7)) @db.Uuid
+  invitationId String?       @map("invitation_id") @db.Uuid
+  eventId      String?       @map("event_id") @db.Uuid
+  giverName    String        @map("giver_name")
   method       GiftMethod
   amount       BigInt?
   description  String?
@@ -231,70 +243,76 @@ model Gift {
   side         Side?
   source       GiftSource    @default(MANUAL)
   /// Wish left by the guest with an online gift
-  message      String?       @db.Text
-  receivedAt   DateTime      @default(now())
+  message      String?
+  receivedAt   DateTime      @default(now()) @map("received_at") @db.Timestamptz(3)
   invitation   Invitation?   @relation(fields: [invitationId], references: [id], onDelete: SetNull)
   event        Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
   payment      PayosPayment?
 
   @@index([invitationId])
   @@index([eventId])
+  @@map("gifts")
 }
 
 /// payOS merchant credentials, one channel (bank account) per family.
 /// Keys are AES-256-GCM encrypted with SETTINGS_SECRET; never sent to clients.
 model PayosConfig {
   side           Side     @id
-  clientId       String
-  apiKeyEnc      String   @db.Text
-  checksumKeyEnc String   @db.Text
+  clientId       String   @map("client_id")
+  apiKeyEnc      String   @map("api_key_enc")
+  checksumKeyEnc String   @map("checksum_key_enc")
   enabled        Boolean  @default(true)
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("payos_configs")
 }
 
 /// A payOS payment link created for an online gift; becomes a Gift once paid
 model PayosPayment {
-  id                 String      @id @default(uuid(7)) @db.Char(36)
-  orderCode          BigInt      @unique
+  id                 String      @id @default(uuid(7)) @db.Uuid
+  orderCode          BigInt      @unique @map("order_code")
   /// payOS channel (one per family)
   side               Side
   amount             BigInt
-  giverName          String
-  message            String?     @db.Text
-  invitationId       String?     @db.Char(36)
+  giverName          String      @map("giver_name")
+  message            String?
+  invitationId       String?     @map("invitation_id") @db.Uuid
   status             PayosStatus @default(PENDING)
-  paymentLinkId      String      @unique
-  qrCode             String      @db.Text
-  checkoutUrl        String      @db.Text
+  paymentLinkId      String      @unique @map("payment_link_id")
+  qrCode             String      @map("qr_code")
+  checkoutUrl        String      @map("checkout_url")
   bin                String      @db.VarChar(8)
-  accountNumber      String
-  accountName        String
+  accountNumber      String      @map("account_number")
+  accountName        String      @map("account_name")
   description        String
-  expiresAt          DateTime
+  expiresAt          DateTime    @map("expires_at") @db.Timestamptz(3)
   /// Last time the status was asked from payOS (throttles polling)
-  checkedAt          DateTime?
-  paidAt             DateTime?
+  checkedAt          DateTime?   @map("checked_at") @db.Timestamptz(3)
+  paidAt             DateTime?   @map("paid_at") @db.Timestamptz(3)
   reference          String?
-  counterAccountName String?
-  giftId             String?     @unique @db.Char(36)
-  createdAt          DateTime    @default(now())
+  counterAccountName String?     @map("counter_account_name")
+  giftId             String?     @unique @map("gift_id") @db.Uuid
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   invitation         Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
   gift               Gift?       @relation(fields: [giftId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([invitationId])
+  @@map("payos_payments")
 }
 
 model AdminUser {
-  id           String   @id @default(uuid(7)) @db.Char(36)
+  id           String   @id @default(uuid(7)) @db.Uuid
   email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("admin_users")
 }
 
 /// A planned wedding cost; what was actually paid lives in its payments
 model Expense {
-  id        String           @id @default(uuid(7)) @db.Char(36)
+  id        String           @id @default(uuid(7)) @db.Uuid
   category  PlanCategory
   name      String
   vendor    String?
@@ -302,43 +320,46 @@ model Expense {
   estimated BigInt           @default(0)
   /// Who pays for it
   side      Side             @default(BOTH)
-  dueDate   DateTime?
-  note      String?          @db.Text
-  sortOrder Int              @default(0)
-  createdAt DateTime         @default(now())
+  dueDate   DateTime?        @map("due_date") @db.Timestamptz(3)
+  note      String?
+  sortOrder Int              @default(0) @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   payments  ExpensePayment[]
   tasks     Task[]
 
   @@index([category])
+  @@map("expenses")
 }
 
 /// Deposit, instalment or final payment of an expense
 model ExpensePayment {
-  id        String   @id @default(uuid(7)) @db.Char(36)
-  expenseId String   @db.Char(36)
+  id        String   @id @default(uuid(7)) @db.Uuid
+  expenseId String   @map("expense_id") @db.Uuid
   amount    BigInt
-  paidAt    DateTime @default(now())
+  paidAt    DateTime @default(now()) @map("paid_at") @db.Timestamptz(3)
   note      String?
   expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
 
   @@index([expenseId])
+  @@map("expense_payments")
 }
 
 /// Wedding to-do item
 model Task {
-  id        String       @id @default(uuid(7)) @db.Char(36)
+  id        String       @id @default(uuid(7)) @db.Uuid
   title     String
   category  PlanCategory @default(OTHER)
-  dueDate   DateTime?
-  doneAt    DateTime?
+  dueDate   DateTime?    @map("due_date") @db.Timestamptz(3)
+  doneAt    DateTime?    @map("done_at") @db.Timestamptz(3)
   /// Who takes care of it (null = not assigned)
   assignee  Side?
-  note      String?      @db.Text
-  expenseId String?      @db.Char(36)
-  sortOrder Int          @default(0)
-  createdAt DateTime     @default(now())
+  note      String?
+  expenseId String?      @map("expense_id") @db.Uuid
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   expense   Expense?     @relation(fields: [expenseId], references: [id], onDelete: SetNull)
 
   @@index([dueDate])
   @@index([expenseId])
+  @@map("tasks")
 }

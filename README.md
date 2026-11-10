@@ -10,7 +10,7 @@ Turborepo monorepo (pnpm) gồm 2 app: `api` (NestJS) và `web` (Next.js). Cấu
 │   ├── api/                    # NestJS 12 API (ESM, cổng 3001)
 │   └── web/                    # Next.js 16 app (cổng 3000)
 ├── packages/
-│   ├── db/                     # @repo/db – Prisma schema, migration, seed, client; ./nest: PrismaModule/Service/Filter
+│   ├── db/                     # @repo/db – Prisma schema, seed, client; ./nest: PrismaModule/Service/Filter
 │   ├── nest-common/            # @repo/nest-common – decorator field (class-validator) cho DTO của Nest
 │   ├── types/                  # @repo/types – interface + enum cho FE (sinh từ Prisma) + request/response viết tay
 │   ├── ui/                     # @repo/ui – component React/shadcn, globals.css
@@ -47,11 +47,23 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
 
-pnpm infra:up       # MySQL, phpMyAdmin, Redis, RustFS
-pnpm db:migrate     # áp migration + generate client và types
+pnpm infra:up       # PostgreSQL, Redis, RustFS
+pnpm db:push        # đẩy schema vào DB + generate client và types
 pnpm db:seed
 pnpm dev            # chạy api + web
 ```
+
+### PostgreSQL: một account, mỗi app một schema
+
+Các app (wedding, turbo, …) dùng chung một user/database Postgres và chỉ tách nhau bằng schema, chọn qua `?schema=` trong `DATABASE_URL`:
+
+```text
+postgresql://postgres:<mật khẩu>@127.0.0.1:5432/postgres?schema=wedding
+```
+
+- `prisma db push` tự tạo schema nếu chưa có.
+- Lúc chạy, `createAdapter` (`@repo/db`) đọc `?schema=` và truyền cho `PrismaPg`.
+- Trên server, đặt `POSTGRES_SCHEMA` trong `deploy/.env.prod` (mặc định `wedding`).
 
 ## Lệnh thường dùng
 
@@ -63,7 +75,7 @@ pnpm dev            # chạy api + web
 | `pnpm test`                        | Chạy test                                                     |
 | `pnpm db:generate`                 | Sinh Prisma client cho api (`packages/db/src/generated`)      |
 | `pnpm db:types`                    | Sinh interface + enum cho FE (`packages/types/src/generated`) |
-| `pnpm db:migrate` / `db:push`      | Migration hoặc đẩy schema thẳng vào DB (kèm generate)         |
+| `pnpm db:push`                     | Đẩy schema thẳng vào DB (kèm generate), chưa dùng migration   |
 | `pnpm db:check`                    | Kiểm tra DB có khớp schema không                              |
 | `pnpm db:studio`                   | Mở Prisma Studio                                              |
 | `pnpm infra:up` / `infra:down`     | Bật/tắt hạ tầng Docker                                        |
@@ -79,7 +91,7 @@ packages/db/prisma/schema.prisma
 ```
 
 - Generator `types` nằm ở `packages/db/prisma/generators/types.ts`. Nó sinh interface theo dạng JSON mà api gửi: `DateTime` và `BigInt` thành `string`, quan hệ là field optional.
-- Đổi schema thì chạy `pnpm db:migrate` (hoặc `pnpm db:types`) rồi commit `packages/types/src/generated`. Không sửa tay file sinh ra.
+- Đổi schema thì chạy `pnpm db:push` (hoặc `pnpm db:types`) rồi commit `packages/types/src/generated`. Không sửa tay file sinh ra.
 - Response cho web viết trong `packages/types/src/responses.ts` bằng model sinh ra, ví dụ `With<Event, { tables: Table[] }>`.
 - Api giữ object `include`/`select` của Prisma và kiểu `*Data` trong `apps/api/src/common/responses.ts`. Cuối file có phép kiểm tra lúc biên dịch: nếu dữ liệu api trả về không khớp kiểu của web thì `check-types` báo lỗi.
 

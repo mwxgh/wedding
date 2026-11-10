@@ -6,7 +6,7 @@ import { createAdapter } from '../index.js';
 export const PRISMA_OPTIONS = Symbol('PRISMA_OPTIONS');
 
 export interface PrismaModuleOptions {
-  /** mysql:// connection string */
+  /** postgresql:// connection string; `?schema=` picks the Postgres schema */
   url: string;
 }
 

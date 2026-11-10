@@ -44,9 +44,10 @@ RUN pnpm turbo run build --filter=api
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm --filter=api deploy --prod --legacy /prod/api
 
-# --- One-off database migrations (`--target migrate`): only the Prisma CLI,
-# schema and migrations. Built from `builder` it carried the whole workspace
-# install and filled the small VPS disk on pull
+# --- One-off schema sync (`--target migrate`): only the Prisma CLI and the
+# schema, runs `prisma db push` (no migration files while in development).
+# Built from `builder` it carried the whole workspace install and filled the
+# small VPS disk on pull
 FROM node:${NODE_VERSION} AS migrate
 WORKDIR /app
 COPY pnpm-workspace.yaml /tmp/
@@ -59,8 +60,7 @@ RUN PRISMA=$(sed -n "s/^  'prisma': //p" /tmp/pnpm-workspace.yaml) \
  && npm cache clean --force && rm /tmp/pnpm-workspace.yaml
 COPY packages/db/prisma.config.ts ./
 COPY packages/db/prisma/schema.prisma ./prisma/
-COPY packages/db/prisma/migrations ./prisma/migrations
-CMD ["node_modules/.bin/prisma", "migrate", "deploy"]
+CMD ["node_modules/.bin/prisma", "db", "push"]
 
 # --- Runtime (default target, keep it last)
 FROM node:${NODE_VERSION} AS runner

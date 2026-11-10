@@ -75,7 +75,7 @@ export class InvitationsController {
         });
       }
       if (eventIds) {
-        // createMany + skipDuplicates becomes INSERT IGNORE on MySQL, which would silently drop bad ids
+        // skipDuplicates (ON CONFLICT DO NOTHING) keeps existing rows; bad ids get a clear 400 here instead of an FK error
         if (
           (await tx.event.count({ where: { id: { in: eventIds } } })) !==
           new Set(eventIds).size
