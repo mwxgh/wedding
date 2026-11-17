@@ -63,7 +63,7 @@ postgresql://postgres:<mật khẩu>@127.0.0.1:5432/postgres?schema=wedding
 
 - `prisma db push` tự tạo schema nếu chưa có.
 - Lúc chạy, `createAdapter` (`@repo/db`) đọc `?schema=` và truyền cho `PrismaPg`.
-- Trên server, đặt `POSTGRES_SCHEMA` trong `deploy/.env.prod` (mặc định `wedding`).
+- Trên server, đặt `POSTGRES_SCHEMA` trong `/srv/wedding/.env` (mặc định `wedding`).
 
 ## Lệnh thường dùng
 

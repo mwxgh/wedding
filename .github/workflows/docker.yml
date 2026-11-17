@@ -146,53 +146,21 @@ jobs:
     env:
       TAG: sha-${{ github.sha }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          sparse-checkout: deploy
-
-      - name: Set up SSH
+      # The server key runs a forced command (/srv/wedding/deploy.sh) that takes
+      # only the image tag: it pulls, runs migrate, starts the apps and waits for
+      # a healthy api. Compose files and Caddy config live on the server (/srv).
+      - name: Deploy over SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
         run: |
           install -m 700 -d ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-
-      - name: Upload compose files
-        run: |
-          scp deploy/docker-compose.prod.yml deploy/Caddyfile \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/root/wedding/"
-
-      - name: Pull, migrate and restart
-        run: |
-          # The job token can read this repo's packages; it is only used for
-          # this pull and expires when the job ends.
-          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            TAG='${{ env.TAG }}' IMAGE_PREFIX='${{ env.IMAGE_PREFIX }}' \
-            GHCR_USER='${{ github.actor }}' GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' \
-            bash -s <<'EOF'
-          set -euo pipefail
-          cd /root/wedding
-          # docker-compose.override.yml is server-only (never uploaded), for
-          # host-specific tweaks such as publishing ports
-          C="docker compose -p wedding -f docker-compose.prod.yml --env-file .env.prod"
-          [ -f docker-compose.override.yml ] && C="$C -f docker-compose.override.yml"
-          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-          # Every release is a new sha tag; drop the ones no container uses
-          # (all re-pullable from ghcr) or the small disk fills up
-          docker image prune -af >/dev/null
-          $C --profile tools pull --quiet api web migrate
-          docker logout ghcr.io
-          # -T and </dev/null: this script itself arrives on stdin (bash -s);
-          # without them `run` swallows the remaining lines and `up` never runs
-          $C run --rm -T migrate </dev/null
-          $C up -d --remove-orphans
-          # Caddyfile is a bind mount: pick up changes uploaded above
-          $C exec -T caddy caddy reload --config /etc/caddy/Caddyfile </dev/null
-          # Remember the release so a manual `up -d` keeps running it
-          sed -i "s|^IMAGE_PREFIX=.*|IMAGE_PREFIX=$IMAGE_PREFIX|; s|^TAG=.*|TAG=$TAG|" .env.prod
-          grep -q '^IMAGE_PREFIX=' .env.prod || echo "IMAGE_PREFIX=$IMAGE_PREFIX" >> .env.prod
-          docker image prune -af >/dev/null
-          EOF
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "$HOST" "$TAG"
 
       - name: Smoke test
         run: |
